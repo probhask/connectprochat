@@ -19,6 +19,9 @@ const conversationSchema: Schema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Chat-list/participant lookups filter on participants — see revamp plan Section H.
+conversationSchema.index({ participants: 1 });
+
 const Conversation = mongoose.model<IConversation>(
   "Conversation",
   conversationSchema

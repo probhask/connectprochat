@@ -1,44 +1,48 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 
-import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 
-dotenv.config();
+import { env } from "../config/env";
+import { errorResponse } from "../lib/response-handlers";
 
-interface AuthenticatedRequest extends Request {
-  user?: string;
+interface AccessTokenPayload {
+  id: string;
 }
 
-const verifyJWT = (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  // console.log("verifyJWT: start");
-  const authHeader = req.headers["authorization"] as string | undefined;
+/**
+ * Verifies the access token and sets `req.userId` to the token's subject.
+ *
+ * Fix for the audit's critical finding: the old version set `req.user =
+ * decoded.username`, but tokens are signed with `{ id: userId }` only — so
+ * `req.user` was always `undefined` and every controller fell back to
+ * trusting a client-supplied `userId` in the body/query instead (the IDOR
+ * hole). Every controller must use `req.userId` from here on, never
+ * `req.body.userId` / `req.query.userId` to determine the acting user.
+ */
+const verifyJWT = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers["authorization"];
 
   if (!authHeader) {
-    // console.error(" verify jwt:access token not provided");
-    res.status(401).json({ message: "Access Token not found" }); //unauthorized
+    errorResponse(res, { status: 401, message: "Access token not found" });
     return;
   }
 
   const token = authHeader.split(" ")[1];
+  if (!token) {
+    errorResponse(res, { status: 401, message: "Access token not found" });
+    return;
+  }
 
-  jwt.verify(
-    token,
-    `${process.env.ACCESS_TOKEN_SECRET}` as string,
-    (err: any, decoded: any) => {
-      if (err) {
-        console.error(" verify jwt:Invalid Access Token");
-        res.status(403).json({ message: "Invalid Access Token" }); // invalid token
-        return;
-      }
-
-      req.user = decoded.username;
-      // console.log("verifyJWT: verified");
-      next();
+  jwt.verify(token, env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err || !decoded || typeof decoded === "string") {
+      errorResponse(res, { status: 403, message: "Invalid access token" });
+      return;
     }
-  );
+
+    const payload = decoded as AccessTokenPayload;
+    req.userId = payload.id;
+    next();
+  });
 };
+
 export default verifyJWT;

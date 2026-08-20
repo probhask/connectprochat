@@ -69,5 +69,9 @@ const messageSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Every message-history fetch filters by conversationId and sorts by recency —
+// see revamp plan Section H.
+messageSchema.index({ conversationId: 1, createdAt: -1 });
+
 const Message = mongoose.model<IMessage>("Message", messageSchema);
 export default Message;

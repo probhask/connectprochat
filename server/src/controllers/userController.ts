@@ -242,7 +242,7 @@ export const removeFriend = async (req: Request, res: Response) => {
     //find conversation
     const existingConversation = await Conversation.findOne({
       participants: {
-        $all: ([user._id, friend._id] as string[]).map(
+        $all: [user._id, friend._id].map(
           (id) => new mongoose.Types.ObjectId(id)
         ),
         $size: [user._id, friend._id].length,
@@ -257,7 +257,7 @@ export const removeFriend = async (req: Request, res: Response) => {
       });
 
       if (messages.length > 0) {
-        const messageIds = messages.map((msg) => msg._id as string);
+        const messageIds = messages.map((msg) => msg._id.toString());
         //delete media file for associated message
         for (const message of messages) {
           if (message.media) {

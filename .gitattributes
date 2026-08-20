@@ -1,0 +1,13 @@
+# Normalize all text files to LF on checkout, regardless of platform/editor autocrlf settings.
+# Fixes the repo-wide CRLF pollution found in the revamp audit.
+* text=auto eol=lf
+
+# Binary assets — never subject to line-ending normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

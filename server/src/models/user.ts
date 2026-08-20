@@ -7,7 +7,7 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
-  profile_picture: IUpload["_id"];
+  profile_picture: IUpload["_id"] | null;
   isOnline: Boolean;
   friends: IUser["_id"][];
   createdAt: Date;

@@ -31,6 +31,9 @@ const friendRequestSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Duplicate-request checks (Section C's createFriendRequest) filter on this triple.
+friendRequestSchema.index({ sender: 1, receiver: 1, status: 1 });
+
 const FriendRequest = mongoose.model<IFriendRequest>(
   "FriendRequest",
   friendRequestSchema
