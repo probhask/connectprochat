@@ -4,6 +4,7 @@ import { asyncWrapper } from "../../../lib/async-wrapper";
 import { ApiError } from "../../../lib/api-error";
 import { env } from "../../../config/env";
 import { errorResponse, successResponse } from "../../../lib/response-handlers";
+import { logger } from "../../../lib/logger";
 import { runTransaction } from "../../../lib/transaction";
 import { OtpService } from "../../otp/service";
 import {
@@ -29,6 +30,16 @@ const otpService = new OtpService();
  * issued here — the client must complete OTP verification before it can log
  * in. Replaces the pre-revamp flow that issued tokens immediately with no
  * email ownership check at all.
+ *
+ * Two recovery paths handled deliberately (both found in code review):
+ * - Re-registering an existing but still-unverified email resends the OTP
+ *   instead of a hard 409, so a user who never got the first email isn't
+ *   stuck (creating a second account for the same address is never valid,
+ *   so this is unambiguous — email is unique on the User model).
+ * - If the OTP email itself fails to send (e.g. a Resend outage), the
+ *   already-created account is still a success — we don't turn that into a
+ *   500 that makes the client think registration failed. The response says
+ *   so explicitly and points at the resend endpoint.
  * @route POST /api/auth/register
  * @body SRegister — { username, email, password }
  * @auth none
@@ -38,26 +49,39 @@ export const register = asyncWrapper(
     const existing = await runTransaction((tx) =>
       userService.findUserByEmail(tx, body.email)
     );
-    if (existing) {
+
+    if (existing && existing.isVerified) {
       throw new ApiError(409, "User with this email already exists");
     }
 
-    const hashedPassword = await hashPassword(body.password);
-    const user = await runTransaction((tx) =>
-      userService.createUser(tx, {
-        username: body.username,
-        email: body.email,
-        hashedPassword,
-      })
-    );
+    if (!existing) {
+      const hashedPassword = await hashPassword(body.password);
+      await runTransaction((tx) =>
+        userService.createUser(tx, {
+          username: body.username,
+          email: body.email,
+          hashedPassword,
+        })
+      );
+    }
+    // else: existing-but-unverified — fall through and resend the OTP
+    // instead of creating a duplicate account for the same email.
 
-    // Email send is intentionally outside the transaction — see otp/service.ts.
-    await otpService.sendEmailOtp(user.email);
+    let emailSent = true;
+    try {
+      // Email send is intentionally outside the transaction — see otp/service.ts.
+      await otpService.sendEmailOtp(body.email);
+    } catch (error) {
+      emailSent = false;
+      logger.error(`Failed to send registration OTP to ${body.email}`, error);
+    }
 
     return successResponse(res, {
       status: 201,
-      message: "Registered successfully. Check your email for a verification code.",
-      data: { email: user.email },
+      message: emailSent
+        ? "Registered successfully. Check your email for a verification code."
+        : "Registered successfully, but the verification email couldn't be sent. Use the resend option to try again.",
+      data: { email: body.email, emailSent },
     });
   },
   { body: SRegister }

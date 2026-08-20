@@ -2,7 +2,7 @@ import { asyncWrapper } from "../../../lib/async-wrapper";
 import { ApiError } from "../../../lib/api-error";
 import { successResponse } from "../../../lib/response-handlers";
 import { runTransaction } from "../../../lib/transaction";
-import { hashPassword, sanitizeUserForResponse, verifyPassword } from "../helpers";
+import { hashPassword, sanitizePublicUserProfile, verifyPassword } from "../helpers";
 import {
   SExploreQuery,
   SGetUserParams,
@@ -13,7 +13,10 @@ import {
 import * as userService from "../service";
 
 /**
- * Fetches a single user's public profile by id.
+ * Fetches another user's PUBLIC profile by id — deliberately narrow (no
+ * email, no friends list; see sanitizePublicUserProfile) since the viewer
+ * may have no relationship to this user at all. Viewing your own full
+ * profile should go through a self-scoped endpoint instead, not this one.
  * @route GET /api/user/:id
  * @params SGetUserParams — { id }
  * @auth required — verifyJWT
@@ -22,7 +25,7 @@ export const getUser = asyncWrapper(
   async (req, res, { params }) => {
     const user = await runTransaction((tx) => userService.findUserById(tx, params.id));
     if (!user) throw new ApiError(404, "User not found");
-    return successResponse(res, { data: sanitizeUserForResponse(user) });
+    return successResponse(res, { data: sanitizePublicUserProfile(user) });
   },
   { params: SGetUserParams }
 );

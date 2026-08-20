@@ -6,12 +6,23 @@ export function parseSort(sort?: string): Record<string, 1 | -1> {
   return { [field]: direction === "desc" ? -1 : 1 };
 }
 
-/** Builds a case-insensitive $or/$regex search clause across the given fields. */
+/** Escapes regex metacharacters so user input matches only as literal text. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Builds a case-insensitive $or/$regex search clause across the given fields.
+ * `search` is caller-supplied (e.g. a query param) — always escaped before
+ * being compiled into a RegExp, both to stop regex-metacharacter injection
+ * (a raw `.`/`|`/`^` matching more than the literal text typed) and to avoid
+ * a ReDoS from a pathological pattern like `(a+)+$`.
+ */
 export function buildSearchClause(
   search?: string,
   searchFields?: string[]
 ): Record<string, unknown> {
   if (!search || !searchFields || searchFields.length === 0) return {};
-  const regex = new RegExp(search.trim(), "i");
+  const regex = new RegExp(escapeRegExp(search.trim()), "i");
   return { $or: searchFields.map((field) => ({ [field]: regex })) };
 }
