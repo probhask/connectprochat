@@ -3,7 +3,6 @@ import express, { Request, Response } from "express";
 import conversationRoute from "./modules/conversation/routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { downLoadFile } from "./utils/downloadFile";
 import { errorHandler } from "./lib/error-handler";
 import { env } from "./config/env";
 import friendRequestRoute from "./modules/friendRequest/routes";
@@ -11,8 +10,7 @@ import helmet from "helmet";
 import { authLimiter, otpLimiter } from "./middlewares/rateLimiter";
 import otpRoute from "./modules/otp/routes";
 import path from "path";
-import uploadRoute from "./routes/uploadRoute";
-import verifyJWT from "./middlewares/verifyJWT";
+import uploadRoute, { downloadRouter } from "./modules/upload/routes";
 import { authRouter, userRouter } from "./modules/user/routes";
 
 /**
@@ -52,28 +50,17 @@ export function createApp() {
   // chatList and message are folded into the conversation module — see
   // revamp plan Section A module-boundary decisions.
   app.use("/api/conversation", conversationRoute);
-
-  // Not yet migrated (still the old flat controllers) — kept mounted so the
-  // app stays fully functional while Phase 2 lands module by module.
-  app.use(
-    "/api/upload",
-    express.static(path.join(__dirname, "./upload")),
-    verifyJWT,
-    uploadRoute
-  );
-  app.get(
-    "/api/download/:filename",
-    express.static(path.join(__dirname, "./upload")),
-    verifyJWT,
-    downLoadFile
-  );
-  app.use(
-    "/api/file",
-    express.static(path.join(__dirname, "./upload")),
-    (_req, res) => {
-      res.json(200);
-    }
-  );
+  app.use("/api/upload", uploadRoute);
+  app.use("/api/download", downloadRouter);
+  // Deliberately no /api/file or express.static over the upload directory:
+  // the pre-revamp app served the ENTIRE upload directory publicly via
+  // express.static mounted before verifyJWT on both /api/upload and
+  // /api/file, so every uploaded file — including private chat media — was
+  // downloadable with zero authentication, completely bypassing the
+  // auth-gated /api/download route that existed right next to it. The only
+  // way to fetch a file now is GET /api/download/:filename, which requires
+  // a valid token and resolves the path safely (see
+  // modules/upload/service.ts's resolveSafeDownloadPath).
 
   // 404
   app.all("*", (req, res) => {

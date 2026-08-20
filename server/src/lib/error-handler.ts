@@ -2,6 +2,7 @@ import { ErrorRequestHandler } from "express";
 import * as yup from "yup";
 
 import mongoose from "mongoose";
+import multer from "multer";
 import { ApiError } from "./api-error";
 import { errorResponse } from "./response-handlers";
 import { logger } from "./logger";
@@ -23,6 +24,13 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof ApiError) {
     errorResponse(res, { status: err.status, message: err.message });
+    return;
+  }
+
+  // Multer errors (file too large, too many files, etc.) — client mistakes,
+  // not server failures. Previously fell through to the generic 500 below.
+  if (err instanceof multer.MulterError) {
+    errorResponse(res, { status: 400, message: err.message });
     return;
   }
 
