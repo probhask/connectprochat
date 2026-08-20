@@ -11,6 +11,7 @@ import {
   SUpdatePersonalData,
 } from "../schemas";
 import * as userService from "../service";
+import { getPendingRequestUserIds } from "../../friendRequest/service";
 
 /**
  * Fetches another user's PUBLIC profile by id — deliberately narrow (no
@@ -31,7 +32,10 @@ export const getUser = asyncWrapper(
 );
 
 /**
- * Paginated user discovery, excluding the caller and their existing friends.
+ * Paginated user discovery, excluding the caller, their existing friends,
+ * and anyone they have a pending friend request with in either direction
+ * (composed from the friendRequest module now that it exists — see the
+ * revamp plan's cross-module-composition note on exploreUsers).
  * @route GET /api/user/explore
  * @query SExploreQuery — { page?, limit?, search? }
  * @auth required — verifyJWT
@@ -39,9 +43,10 @@ export const getUser = asyncWrapper(
 export const explore = asyncWrapper(
   async (req, res, { query }) => {
     const userId = req.userId!;
-    const result = await runTransaction((tx) =>
-      userService.exploreUsers(tx, userId, query)
-    );
+    const result = await runTransaction(async (tx) => {
+      const excludeIds = await getPendingRequestUserIds(tx, userId);
+      return userService.exploreUsers(tx, userId, { ...query, excludeIds });
+    });
     return successResponse(res, { data: result });
   },
   { query: SExploreQuery }

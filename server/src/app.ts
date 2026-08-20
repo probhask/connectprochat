@@ -7,7 +7,7 @@ import cors from "cors";
 import { downLoadFile } from "./utils/downloadFile";
 import { errorHandler } from "./lib/error-handler";
 import { env } from "./config/env";
-import friendRequestRoute from "./routes/friendRequestRoute";
+import friendRequestRoute from "./modules/friendRequest/routes";
 import helmet from "helmet";
 import { authLimiter, otpLimiter } from "./middlewares/rateLimiter";
 import messageRoute from "./routes/messageRoute";
@@ -50,12 +50,12 @@ export function createApp() {
   app.use("/api/auth", authLimiter, authRouter);
   app.use("/api/otp", otpLimiter, otpRoute);
   app.use("/api/user", userRouter);
+  app.use("/api/friendRequest", friendRequestRoute); // applies verifyJWT itself
 
   // Not yet migrated (still the old flat controllers) — kept mounted so the
   // app stays fully functional while Phase 2 lands module by module.
   app.use("/api/chatlist", verifyJWT, chatListRoute);
   app.use("/api/conversation", verifyJWT, conversationRoute);
-  app.use("/api/friendRequest", verifyJWT, friendRequestRoute);
   app.use("/api/message", verifyJWT, messageRoute);
 
   app.use(

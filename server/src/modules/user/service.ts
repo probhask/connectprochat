@@ -147,10 +147,9 @@ export async function getFriends(tx: TxContext, userId: string) {
 }
 
 /**
- * Paginated user discovery excluding self and existing friends. Pending
- * friend requests are excluded once the friendRequest module lands (its
- * controller composes the extra exclusion ids into this call) — not done
- * here so this module ships independently, per the revamp phase order.
+ * Paginated user discovery excluding self, existing friends, and any
+ * caller-supplied extra ids (profile.controllers.ts's explore composes in
+ * pending-friend-request user ids from the friendRequest module here).
  */
 export async function exploreUsers(
   tx: TxContext,
