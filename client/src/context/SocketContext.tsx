@@ -1,53 +1,66 @@
-// // import { Socket, io } from "socket.io-client";
-// import { createContext, useContext, useEffect, useMemo } from "react";
+import { Socket, io } from "socket.io-client";
+import { createContext, useContext, useEffect, useMemo } from "react";
 
-// import { useChatAppSelector } from "@store/hooks";
+import { useChatAppSelector } from "@store/hooks";
 
-// type SocketContextType = {
-//   socket: Socket;
-// };
+type SocketContextType = {
+  socket: Socket;
+};
 
-// export const SocketContext = createContext<SocketContextType | undefined>(
-//   undefined
-// );
+export const SocketContext = createContext<SocketContextType | undefined>(
+  undefined
+);
 
-// export const SocketContextProvider = ({
-//   children,
-// }: {
-//   children: React.ReactNode;
-// }) => {
-//   const socket = useMemo(() => io("import.meta.env.VITE_BACKEND_URL:5000"), []);
-//   const user = useChatAppSelector((store) => store.auth);
+/**
+ * Actually wires the `authenticate` handshake now — this was written but
+ * commented out (a no-op), so the server's `sockets/handlers/connection.ts`
+ * authenticate handler was reachable but never actually called by anything.
+ * Matches the event names in server/src/sockets/constants.ts's SocketEvent.
+ */
+export const SocketContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const socket = useMemo(
+    () => io(`${import.meta.env.VITE_BACKEND_URL}`, { autoConnect: false }),
+    []
+  );
+  const accessToken = useChatAppSelector((store) => store.auth.accessToken);
 
-//   useEffect(() => {
-//     socket.on("connect", () => {
-//       console.log("user connected", socket.id);
-//       if (user?.accessToken) {
-//         socket.emit("authenticate", user.accessToken);
-//       }
-//     });
+  useEffect(() => {
+    if (!accessToken) {
+      socket.disconnect();
+      return;
+    }
 
-//     return () => {
-//       socket.disconnect();
-//     };
-//   }, [user, socket]);
+    socket.connect();
+    socket.on("connect", () => {
+      socket.emit("authenticate", accessToken);
+    });
 
-//   return (
-//     <SocketContext.Provider value={{ socket }}>
-//       {children}
-//     </SocketContext.Provider>
-//   );
-// };
+    return () => {
+      socket.off("connect");
+      socket.disconnect();
+    };
+  }, [accessToken, socket]);
 
-// const useSocketContext = () => {
-//   const context = useContext(SocketContext);
+  return (
+    <SocketContext.Provider value={{ socket }}>
+      {children}
+    </SocketContext.Provider>
+  );
+};
 
-//   if (!context) {
-//     throw new Error(
-//       "useSocketContext hook must be used within SocketContextProvider"
-//     );
-//   }
-//   return context;
-// };
+const useSocketContext = () => {
+  const context = useContext(SocketContext);
 
-// export default useSocketContext;
+  if (!context) {
+    throw new Error(
+      "useSocketContext hook must be used within SocketContextProvider"
+    );
+  }
+  return context;
+};
+
+export default useSocketContext;
