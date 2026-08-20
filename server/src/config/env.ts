@@ -3,6 +3,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+function isValidUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Typed, validated environment configuration.
  *
@@ -27,8 +37,17 @@ const envSchema = yup.object({
   ACCESS_TOKEN_EXPIRATION: yup.string().required("ACCESS_TOKEN_EXPIRATION is required"),
   REFRESH_TOKEN_EXPIRATION: yup.string().required("REFRESH_TOKEN_EXPIRATION is required"),
 
-  BACKEND_URL: yup.string().url().required("BACKEND_URL is required"),
-  FRONTEND_URL: yup.string().url().required("FRONTEND_URL is required"),
+  // yup's built-in .url() rejects host-only URLs like "http://localhost:5173"
+  // (no TLD) in the installed yup version — would block every local dev boot.
+  // The native URL constructor is the correct, permissive check here.
+  BACKEND_URL: yup
+    .string()
+    .required("BACKEND_URL is required")
+    .test("is-url", "BACKEND_URL must be a valid URL", isValidUrl),
+  FRONTEND_URL: yup
+    .string()
+    .required("FRONTEND_URL is required")
+    .test("is-url", "FRONTEND_URL must be a valid URL", isValidUrl),
 
   // Provisioned in Phase 0 for the Section G OTP/email-verification feature (Phase 2).
   // Optional for now so Phase 0/1 (no OTP module yet) don't require a Resend account

@@ -43,6 +43,12 @@ export function createTxContext(session: ClientSession) {
     friendRequest: bindModel(FriendRequest, session),
     upload: bindModel(Upload, session),
     otp: bindModel(Otp, session),
+    /**
+     * Raw session, for the rare call that needs a Mongoose API `tx.<model>`
+     * doesn't wrap (e.g. `paginateQuery`, which takes a model directly).
+     * Prefer `tx.<model>.*` whenever it covers the call.
+     */
+    session,
   };
 }
 

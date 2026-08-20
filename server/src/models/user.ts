@@ -1,19 +1,21 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 import { IUpload } from "./upload";
-import bcrypt from "bcrypt";
 
 export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
   profile_picture: IUpload["_id"] | null;
-  isOnline: Boolean;
+  isOnline: boolean;
+  isVerified: boolean;
+  lastSeen: Date;
   friends: IUser["_id"][];
   createdAt: Date;
   updatedAt: Date;
   refreshToken: string;
 }
+
 const userSchema: Schema = new mongoose.Schema(
   {
     username: {
@@ -38,9 +40,15 @@ const userSchema: Schema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Email/OTP-verified — see modules/otp. Unverified accounts can register
+    // but cannot log in until this flips true (modules/user/auth.controllers.ts).
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     lastSeen: {
       type: Date,
-      default: Date.now(),
+      default: Date.now,
     },
     friends: [
       {
@@ -57,17 +65,3 @@ const userSchema: Schema = new mongoose.Schema(
 
 const User = mongoose.model<IUser>("User", userSchema);
 export default User;
-
-// async function testFunc() {
-//   const users = await User.find({ password: "Pass@1234" });
-//   for (const user of users) {
-//     const password = user.password;
-
-//     // Hash the password before saving
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     user.password = hashedPassword;
-//     await user.save();
-//   }
-// }
-// testFunc();
