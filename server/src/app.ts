@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 
-import chatListRoute from "./routes/chatListRoute";
-import conversationRoute from "./routes/conversationRoute";
+import conversationRoute from "./modules/conversation/routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { downLoadFile } from "./utils/downloadFile";
@@ -10,7 +9,6 @@ import { env } from "./config/env";
 import friendRequestRoute from "./modules/friendRequest/routes";
 import helmet from "helmet";
 import { authLimiter, otpLimiter } from "./middlewares/rateLimiter";
-import messageRoute from "./routes/messageRoute";
 import otpRoute from "./modules/otp/routes";
 import path from "path";
 import uploadRoute from "./routes/uploadRoute";
@@ -46,18 +44,17 @@ export function createApp() {
     res.send("Connect+ server is running...");
   });
 
-  // Migrated modules
+  // Migrated modules — all apply verifyJWT themselves
   app.use("/api/auth", authLimiter, authRouter);
   app.use("/api/otp", otpLimiter, otpRoute);
   app.use("/api/user", userRouter);
-  app.use("/api/friendRequest", friendRequestRoute); // applies verifyJWT itself
+  app.use("/api/friendRequest", friendRequestRoute);
+  // chatList and message are folded into the conversation module — see
+  // revamp plan Section A module-boundary decisions.
+  app.use("/api/conversation", conversationRoute);
 
   // Not yet migrated (still the old flat controllers) — kept mounted so the
   // app stays fully functional while Phase 2 lands module by module.
-  app.use("/api/chatlist", verifyJWT, chatListRoute);
-  app.use("/api/conversation", verifyJWT, conversationRoute);
-  app.use("/api/message", verifyJWT, messageRoute);
-
   app.use(
     "/api/upload",
     express.static(path.join(__dirname, "./upload")),
