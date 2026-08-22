@@ -1,9 +1,9 @@
 import type { CONVERSATION, MESSAGE } from "types";
+import { useCallback, useState } from "react";
 import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
 
 import { addInitialConversationRoomData } from "@store/slices/conversation";
 import axiosError from "@utils/AxiosError/axiosError";
-import { useCallback } from "react";
 import useRefresh from "./useRefresh";
 
 /** Server always wraps responses as { success, message, data }. */
@@ -14,13 +14,20 @@ const useConversation = () => {
   const dispatch = useChatAppDispatch();
   const userId = useChatAppSelector((store) => store.auth._id);
   const api = useRefresh();
+  // Not built on useFetchData (unlike most other hooks) because this fires
+  // two requests at once via Promise.all — tracked manually instead.
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationError, setConversationError] = useState<string | null>(null);
+
   const fetchConversation = useCallback(
     async (conversationRoomId: string) => {
-      try {
-        if (!conversationRoomId || !userId) {
-          return;
-        }
+      if (!conversationRoomId || !userId) {
+        return;
+      }
 
+      setConversationLoading(true);
+      setConversationError(null);
+      try {
         // Folded into the conversation module (Phase 2) — /conversation and
         // /message no longer exist; it's GET /conversation/:id and GET
         // /conversation/:id/messages now, both scoped by the token, and
@@ -46,13 +53,16 @@ const useConversation = () => {
           })
         );
       } catch (error) {
+        setConversationError("Failed to load conversation");
         axiosError(error);
+      } finally {
+        setConversationLoading(false);
       }
     },
-    [dispatch, userId]
+    [dispatch, userId, api]
   );
 
-  return { fetchConversation };
+  return { fetchConversation, conversationLoading, conversationError };
 };
 
 export default useConversation;
