@@ -1,11 +1,10 @@
 import { Button, Stack, Typography } from "@mui/material";
+import { useEffect, useRef } from "react";
 
 import { Formik } from "formik";
 import InputTextfield from "@components/Forms/InputTextfield";
 import { UpdatePersonalDataFormValidation } from "@utils/validation";
-import toast from "react-hot-toast";
 import { useChatAppSelector } from "@store/hooks";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useProfileContext from "@context/ProfileContext";
 
@@ -13,17 +12,22 @@ const UpdatePersonalData = () => {
   const navigate = useNavigate();
   const user = useChatAppSelector((store) => store.auth);
   const {
-    abortUpdateProfile,
     handleUpdateProfileData,
     updateProfileLoading,
     updateProfileError,
   } = useProfileContext();
 
+  // Track whether a submit here actually caused the in-flight mutation,
+  // so a success elsewhere (or a stale error from a previous visit)
+  // doesn't navigate away/toast on this screen.
+  const submittedRef = useRef(false);
+
   useEffect(() => {
-    return () => {
-      abortUpdateProfile();
-    };
-  }, []);
+    if (submittedRef.current && !updateProfileLoading && !updateProfileError) {
+      submittedRef.current = false;
+      setTimeout(() => navigate(-1), 1000);
+    }
+  }, [updateProfileLoading, updateProfileError, navigate]);
 
   return (
     <Stack
@@ -53,23 +57,10 @@ const UpdatePersonalData = () => {
             values.username !== user.username ||
             values.email !== user.email
           ) {
-            handleUpdateProfileData(values.username, values.email)
-              .then(() => {
-                if (!updateProfileError) {
-                  setTimeout(() => {
-                    navigate(-1);
-                  }, 1000);
-                }
-              })
-              .catch((error) => {
-                toast.error(error?.message);
-              })
-              .finally(() => {
-                setSubmitting(false);
-              });
-          } else {
-            setSubmitting(false);
+            submittedRef.current = true;
+            handleUpdateProfileData(values.username, values.email);
           }
+          setSubmitting(false);
         }}
       >
         {({
@@ -117,7 +108,7 @@ const UpdatePersonalData = () => {
                 disabled={isSubmitting || updateProfileLoading}
                 sx={{
                   mt: 4,
-                  color: "#fff",
+                  color: "var(--color-light)",
                   backgroundColor: "var(--color-bg-primary)",
                 }}
               >

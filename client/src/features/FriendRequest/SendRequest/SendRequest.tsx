@@ -4,12 +4,11 @@ import ActionProfilePreview from "@components/ActionProfilePreview";
 import { Cancel } from "@mui/icons-material";
 import EmptyMessage from "@components/EmptyMessage";
 import { Stack } from "@mui/material";
-import { useChatAppSelector } from "@store/hooks";
 import useFriendRequestContext from "@context/FriendRequestContext";
 
 const SendRequest = () => {
-  const req = useChatAppSelector((store) => store?.friendRequest?.sended);
   const {
+    sentRequests: req,
     sentLoading,
     sentError,
     handleCancelRequest,
@@ -47,7 +46,7 @@ const SendRequest = () => {
                 buttons={[
                   {
                     text: cancelingRequest ? "..." : "CANCEL",
-                    themeColor: "#C62E2E",
+                    themeColor: "var(--color-danger)",
                     icon: cancelingRequest ? (
                       ""
                     ) : (

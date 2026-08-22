@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { addAuthData } from "@store/slices/authSlice";
 import toast from "react-hot-toast";
 import { useChatAppDispatch } from "@store/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 import useOtp from "@hooks/useOtp";
 
 /**
@@ -22,6 +23,7 @@ const VerifyOtp = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useChatAppDispatch();
+  const queryClient = useQueryClient();
   const emailFromState = (location.state as { email?: string } | null)?.email ?? "";
 
   const [email, setEmail] = useState(emailFromState);
@@ -37,19 +39,22 @@ const VerifyOtp = () => {
     verifyError,
   } = useOtp();
 
-  // useFetchData's fetchData() never rejects on failure — react to the
-  // resulting state, don't assume the awaited call in the submit handler
-  // succeeded (see useOtp.tsx's doc comment).
+  // Mutations don't reject in the submit handler either — react to the
+  // resulting state, don't assume the call succeeded just because it was
+  // awaited/fired.
   useEffect(() => {
     if (verifyResp?.success && verifyResp.data?._id) {
+      // See useAuthentication.tsx's login effect for why — same reasoning,
+      // this is also a "log a fresh identity in" moment.
+      queryClient.clear();
       dispatch(addAuthData({ ...verifyResp.data }));
       toast.success("Email verified — you're logged in");
       navigate(location?.state?.from || "/", { replace: true });
     }
-  }, [verifyResp, navigate, dispatch, location]);
+  }, [verifyResp, navigate, dispatch, location, queryClient]);
 
   useEffect(() => {
-    if (verifyError) toast.error(verifyError);
+    if (verifyError) toast.error("Invalid or expired code");
   }, [verifyError]);
 
   useEffect(() => {
@@ -57,7 +62,7 @@ const VerifyOtp = () => {
   }, [sendResp]);
 
   useEffect(() => {
-    if (sendError) toast.error(sendError);
+    if (sendError) toast.error("Failed to send code");
   }, [sendError]);
 
   const handleVerify = (e: React.FormEvent) => {
@@ -110,9 +115,9 @@ const VerifyOtp = () => {
             type="submit"
             disabled={verifyLoading}
             sx={{
-              color: "#fff",
-              backgroundColor: "#000",
-              ":disabled": { backgroundColor: "#181c14", color: "#fff" },
+              color: "var(--color-light)",
+              backgroundColor: "var(--color-dark)",
+              ":disabled": { backgroundColor: "var(--color-dark)", color: "var(--color-light)" },
             }}
           >
             {verifyLoading ? "Verifying..." : "Verify"}
@@ -140,15 +145,15 @@ const VerifyOtp = () => {
 export default VerifyOtp;
 
 const StyledTextField = styled(TextField)({
-  accentColor: "red",
-  caretColor: "#fff",
+  accentColor: "var(--color-danger)",
+  caretColor: "var(--color-light)",
   width: "100%",
   "& .MuiOutlinedInput-root": {
-    "& fieldset": { borderColor: "#fff", colors: "#fff" },
-    "&:hover fieldset": { borderColor: "#fff", color: "#fff" },
-    "& .Mui-focused fieldset": { borderColor: "red", color: "#fff" },
-    "& input": { color: "#fff" },
+    "& fieldset": { borderColor: "var(--color-light)", colors: "var(--color-light)" },
+    "&:hover fieldset": { borderColor: "var(--color-light)", color: "var(--color-light)" },
+    "& .Mui-focused fieldset": { borderColor: "var(--color-danger)", color: "var(--color-light)" },
+    "& input": { color: "var(--color-light)" },
   },
-  "& .MuiInputLabel-root": { color: "#fff" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
+  "& .MuiInputLabel-root": { color: "var(--color-light)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "var(--color-light)" },
 });

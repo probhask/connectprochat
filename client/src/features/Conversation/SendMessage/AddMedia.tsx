@@ -21,7 +21,7 @@ const AddMedia = React.memo(
       >
         <IconButton
           sx={{
-            color: "black",
+            color: "var(--color-dark)",
             ":hover": {
               backgroundColor: "rgba(0,0,0,0.2)",
             },

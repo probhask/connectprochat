@@ -5,6 +5,9 @@ import { ApiError } from "../../lib/api-error";
 import { logger } from "../../lib/logger";
 import { successResponse } from "../../lib/response-handlers";
 import { runTransaction } from "../../lib/transaction";
+import { SocketEvent } from "../../sockets/constants";
+import { emitToConversation } from "../../sockets/helpers";
+import { getIo } from "../../sockets/ioInstance";
 import { SDownloadFileParams, SUploadMessageFile } from "./schemas";
 import * as uploadService from "./service";
 
@@ -32,7 +35,9 @@ async function withUploadCleanup<T>(
 
 /**
  * Uploads a file and attaches it as media on a new message. Sender is
- * always the caller.
+ * always the caller. Broadcasts the message the same way the text-only
+ * send does — see conversation/controllers/message.controllers.ts's
+ * sendMessage doc comment.
  * @route POST /api/upload/message
  * @body SUploadMessageFile — { conversationId, text? } (multipart, field "file")
  * @auth required — verifyJWT
@@ -47,6 +52,10 @@ export const uploadMessageFile = asyncWrapper(
         uploadService.uploadMessageFile(tx, file, senderId, body.conversationId, body.text ?? "")
       )
     );
+    const io = getIo();
+    if (io) {
+      emitToConversation(io, body.conversationId, SocketEvent.MESSAGE_RECEIVED, message);
+    }
     return successResponse(res, { status: 201, data: message });
   },
   { body: SUploadMessageFile }

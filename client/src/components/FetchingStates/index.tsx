@@ -66,7 +66,7 @@ export const ErrorState = React.memo(
           textAlign: "center",
           paddingBlock: "40px",
           width: "100%",
-          color: " var(--color-red)",
+          color: " var(--color-danger)",
           fontSize: "0.95rem",
           height: "70vh",
           display: "flex",

@@ -4,33 +4,21 @@ import { ErrorState, LoadingState } from "@components/FetchingStates";
 import ActionProfilePreview from "@components/ActionProfilePreview";
 import EmptyMessage from "@components/EmptyMessage";
 import { Stack } from "@mui/material";
-import { useChatAppSelector } from "@store/hooks";
-import { useEffect } from "react";
 import useFriendRequestContext from "@context/FriendRequestContext";
 
 const ReceiveRequest = () => {
-  const req = useChatAppSelector((store) => store.friendRequest.received);
   const {
+    receivedRequests: req,
     receivedLoading,
     receivedError,
-    abortReceivedRequests,
     cancelLoading,
     handleCancelRequest,
-    abortCancelRequest,
     cancelRequestId,
     handleAcceptRequest,
-    abortAcceptRequest,
     acceptLoading,
     acceptRequestId,
   } = useFriendRequestContext();
 
-  useEffect(() => {
-    return () => {
-      abortReceivedRequests();
-      abortCancelRequest();
-      abortAcceptRequest();
-    };
-  }, []);
   return (
     <Stack
       direction="column"
@@ -59,7 +47,7 @@ const ReceiveRequest = () => {
                 buttons={[
                   {
                     text: cancelingRequest ? "..." : "REJECT",
-                    themeColor: "#C62E2E",
+                    themeColor: "var(--color-danger)",
                     icon: cancelingRequest ? (
                       ""
                     ) : (
@@ -69,7 +57,7 @@ const ReceiveRequest = () => {
                   },
                   {
                     text: acceptingRequest ? "..." : "Accept",
-                    themeColor: "#347928",
+                    themeColor: "var(--color-success)",
                     icon: acceptingRequest ? (
                       ""
                     ) : (

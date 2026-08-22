@@ -21,7 +21,7 @@ const ChatPage = () => {
               sx={{
                 height: "calc(100vh - 90px)",
                 overflow: "auto",
-                backgroundColor: "white",
+                backgroundColor: "var(--color-light)",
               }}
             >
               <Outlet />
@@ -55,7 +55,7 @@ const LeftSideBar = styled(Box)<{
   screen: string;
 }>(({ theme, screen }) => ({
   flex: 1,
-  backgroundColor: "white",
+  backgroundColor: "var(--color-light)",
   display: screen === "false" ? "block" : "none",
   height: "100vh",
   overflow: "hidden",

@@ -33,7 +33,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       // You can render any custom fallback UI
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-neutral-800">
-          <div className="rounded-md bg-neutral-950 p-3 px-5 text-center text-[#F7EFE5]">
+          <div className="rounded-md bg-neutral-950 p-3 px-5 text-center text-[var(--color-text-primary)]">
             <h1 className="mb-1 text-4xl font-bold uppercase">OOPS!</h1>
             <h1 className="mb-3 text-2xl font-bold uppercase">
               Something went wrong.

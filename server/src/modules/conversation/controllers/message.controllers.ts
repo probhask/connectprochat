@@ -1,6 +1,9 @@
 import { asyncWrapper } from "../../../lib/async-wrapper";
 import { successResponse } from "../../../lib/response-handlers";
 import { runTransaction } from "../../../lib/transaction";
+import { SocketEvent } from "../../../sockets/constants";
+import { emitToConversation } from "../../../sockets/helpers";
+import { getIo } from "../../../sockets/ioInstance";
 import {
   SConversationIdParams,
   SDeleteMessages,
@@ -31,6 +34,14 @@ export const getMessages = asyncWrapper(
 
 /**
  * Sends a message. Sender is always the caller.
+ *
+ * Also broadcasts the new message over the conversation's socket room
+ * (same event, same helper the socket SEND_MESSAGE handler uses — see
+ * sockets/handlers/message.ts) so participants who didn't send it get it
+ * in real time. Sending is REST-first (proper HTTP status/error
+ * semantics, works the same whether or not the socket is connected);
+ * this just makes REST-sent messages reach everyone live too, instead of
+ * only ones sent through the socket path.
  * @route POST /api/conversation/:id/messages
  * @params SConversationIdParams — { id }
  * @body SSendMessage — { text }
@@ -42,6 +53,8 @@ export const sendMessage = asyncWrapper(
     const message = await runTransaction((tx) =>
       conversationService.sendMessage(tx, params.id, senderId, body.text)
     );
+    const io = getIo();
+    if (io) emitToConversation(io, params.id, SocketEvent.MESSAGE_RECEIVED, message);
     return successResponse(res, { status: 201, data: message });
   },
   { params: SConversationIdParams, body: SSendMessage }

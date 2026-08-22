@@ -55,7 +55,7 @@ const MessageInput = React.memo(
         sx={{
           flex: 1,
           flexDirection: "column",
-          backgroundColor: "white",
+          backgroundColor: "var(--color-light)",
           borderRadius: 2,
         }}
       >
@@ -122,7 +122,7 @@ const MessageInput = React.memo(
           >
             <Tooltip title="emoji">
               <EmojiEmotions
-                sx={{ color: "#FFB02E", background: "transparent" }}
+                sx={{ color: "var(--color-warning)", background: "transparent" }}
               />
             </Tooltip>
           </IconButton>

@@ -1,19 +1,19 @@
 import React, { createContext, useContext } from "react";
 
+import type { FRIEND } from "types";
 import useFriend from "@hooks/useFriend";
 
 type FriendContextType = {
-  friendError: string | null;
+  friends: FRIEND[];
+  friendError: boolean;
   friendLoading: boolean;
-  abortFriends: () => void;
   removeFriendId: string | null;
-  unfriendError: string | null;
+  unfriendError: boolean;
   unfriendLoading: boolean;
-  handleUnfriendUser: (friendId: string) => Promise<void>;
-  abortUnfriend: () => void;
+  handleUnfriendUser: (friendId: string) => void;
   conversationFriendId: string | null;
   conversationRoomLoading: boolean;
-  handleFindConversationRoom: (friendId: string) => Promise<void>;
+  handleFindConversationRoom: (friendId: string) => void;
 };
 
 export const FriendContext = createContext<FriendContextType | undefined>(
@@ -27,15 +27,14 @@ export const FriendContextProvider = ({
 }) => {
   const {
     //fetch friend
+    friends,
     friendError,
     friendLoading,
-    abortFriends,
     //unfriend
     removeFriendId,
     unfriendError,
     unfriendLoading,
     handleUnfriendUser,
-    abortUnfriend,
     //enter conversation room
     conversationFriendId,
     conversationRoomLoading,
@@ -44,15 +43,14 @@ export const FriendContextProvider = ({
 
   const values = {
     //fetch friend
+    friends,
     friendError,
     friendLoading,
-    abortFriends,
     //unfriend
     removeFriendId,
     unfriendError,
     unfriendLoading,
     handleUnfriendUser,
-    abortUnfriend,
     //enter conversation room
     conversationFriendId,
     conversationRoomLoading,

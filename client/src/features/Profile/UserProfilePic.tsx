@@ -1,6 +1,6 @@
 import { Box, IconButton } from "@mui/material";
 import { CameraAlt, LoopTwoTone } from "@mui/icons-material";
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 
 import { StyledUserAvatar } from "@components/MuiStyledComponent";
 import { fileFormat } from "@constants/AcceptMediaFormats";
@@ -10,19 +10,13 @@ import useProfileContext from "@context/ProfileContext";
 const UserProfilePic = React.memo(() => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const user = useChatAppSelector((store) => store.auth);
-  const { profilePicLoading, handleUploadProfilePic, abortUploadProfilePic } =
-    useProfileContext();
+  const { profilePicLoading, handleUploadProfilePic } = useProfileContext();
   const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       handleUploadProfilePic(file);
     }
   };
-  useEffect(() => {
-    return () => {
-      abortUploadProfilePic();
-    };
-  }, []);
 
   return (
     <Box
@@ -71,8 +65,8 @@ const UserProfilePic = React.memo(() => {
           bottom: 5,
           right: 10,
           zIndex: 34,
-          color: "white",
-          bgcolor: "#000",
+          color: "var(--color-light)",
+          bgcolor: "var(--color-dark)",
           "& :hover": {
             bgColor: "none",
           },

@@ -24,14 +24,14 @@ const ActionButtons = React.memo(
       if (type === "GROUP_PROFILE" && btnStatus) {
         return {
           text: "Leave Group",
-          pallet: "#C62E2E",
+          pallet: "var(--color-danger)",
           icon: <ExitToApp />,
           click: () => {},
         };
       } else if (type === "GROUP_PROFILE" && !btnStatus) {
         return {
           text: "Join Group",
-          pallet: "#6256CA",
+          pallet: "var(--color-bg-primary)",
           icon: <Add />,
           click: () => {},
         };
@@ -41,14 +41,14 @@ const ActionButtons = React.memo(
             unfriendLoading && removeFriendId === profileId
               ? "..."
               : "Unfriend",
-          pallet: "#C62E2E",
+          pallet: "var(--color-danger)",
           icon: <PersonRemove />,
           click: () => handleUnfriendUser(profileId),
         };
       } else if (type === "USER_PROFILE" && !btnStatus) {
         return {
           text: "ADD",
-          pallet: "#6256CA",
+          pallet: "var(--color-bg-primary)",
           icon: <Add />,
           click: () => {},
         };
@@ -86,7 +86,7 @@ ActionButtons.displayName = "ActionButtons";
 export default ActionButtons;
 
 const ProfileSectionActionButton = styled(Button)<{ pallet: string }>(
-  ({ pallet = "blue" }) => ({
+  ({ pallet = "var(--color-bg-primary)" }) => ({
     width: "100%",
     maxWidth: "300px",
     border: `2px solid ${pallet}`,
@@ -99,7 +99,7 @@ const ProfileSectionActionButton = styled(Button)<{ pallet: string }>(
 
     ":hover": {
       backgroundColor: pallet,
-      color: "#ffffff",
+      color: "var(--color-light)",
     },
   })
 );

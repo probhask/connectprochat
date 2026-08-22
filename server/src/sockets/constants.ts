@@ -14,6 +14,8 @@ export const SocketEvent = {
   AUTH_ERROR: "authError",
   MESSAGE_RECEIVED: "messageReceived",
   PRESENCE_CHANGED: "presenceChanged",
+  FRIEND_REQUEST_RECEIVED: "friendRequestReceived",
+  FRIEND_REQUEST_ACCEPTED: "friendRequestAccepted",
   ERROR: "error",
 } as const;
 

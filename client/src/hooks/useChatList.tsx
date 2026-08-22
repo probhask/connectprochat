@@ -1,52 +1,50 @@
-import { useCallback, useEffect } from "react";
-import { useChatAppDispatch } from "@store/hooks";
+import { useQuery } from "@tanstack/react-query";
 
 import { CHAT_LIST } from "types";
-import { addInitialChatList } from "@store/slices/chatList";
-import useFetchData from "./useFetchData";
+import { httpClient } from "@services/apis/httpClient";
+import { queryKeys } from "./queryKeys";
+import useChatAppContext from "@context/index";
+import { useLocation } from "react-router-dom";
 
 /** Server always wraps responses as { success, message, data }. */
 type ApiEnvelope<T> = { success: boolean; message: string; data: T };
 
+/**
+ * Phase 5 — chat list is server cache, migrated onto TanStack Query.
+ * `enabled` replicates the same "only fetch when this list is actually
+ * visible" condition ChatPreviewList used to compute and pass into a
+ * manual fetchChatList() call — moved in here so the hook is
+ * self-sufficient (matches useExplore/useFriend), and because the
+ * moment it becomes visible is exactly when a query should (re)run
+ * anyway, which `enabled` already does natively.
+ */
 const useChatList = () => {
-  const dispatch = useChatAppDispatch();
+  const location = useLocation();
+  const { conversationTab, profileTab } = useChatAppContext();
 
-  // chatList folded into the conversation module (Phase 2) — /chatlist no
-  // longer exists, it's GET /conversation/chat-list, and it's self-scoped
-  // via the token now (no userId param).
-  const [
-    chatListResp,
-    chatListLoading,
-    chatListError,
-    fetchChatList,
-    abortFetchChatList,
-  ] = useFetchData<ApiEnvelope<CHAT_LIST[]>>(
-    "/conversation/chat-list",
-    "GET",
-    {},
-    false
-  );
-  const handleFetchChatList = useCallback(async () => {
-    fetchChatList();
-  }, [fetchChatList]);
+  const isVisible =
+    (location.pathname === "/" && !conversationTab && !profileTab) ||
+    !!((conversationTab || profileTab) && window.innerWidth > 600);
 
-  useEffect(() => {
-    if (chatListResp?.data) {
-      dispatch(addInitialChatList(chatListResp.data)); //add to redux
-    }
-  }, [chatListResp, dispatch]);
-
-  useEffect(() => {
-    return () => {
-      abortFetchChatList();
-    };
-  }, []);
+  const {
+    data: chatList = [],
+    isLoading: chatListLoading,
+    isError: chatListError,
+  } = useQuery({
+    queryKey: queryKeys.conversation.chatList(),
+    queryFn: async () => {
+      const response = await httpClient.get<ApiEnvelope<CHAT_LIST[]>>(
+        "/conversation/chat-list"
+      );
+      return response.data.data;
+    },
+    enabled: isVisible,
+  });
 
   return {
+    chatList,
     chatListLoading,
     chatListError,
-    abortFetchChatList,
-    handleFetchChatList,
   };
 };
 

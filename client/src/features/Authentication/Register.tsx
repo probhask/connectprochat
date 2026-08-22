@@ -33,13 +33,8 @@ const Register = () => {
         validationSchema={RegisterFormValidationSchema}
         validateOnChange={true}
         onSubmit={(values, { setSubmitting }) => {
-          handleRegister(
-            values.username,
-            values.email,
-            values.password
-          ).finally(() => {
-            setSubmitting(false);
-          });
+          handleRegister(values.username, values.email, values.password);
+          setSubmitting(false);
         }}
       >
         {({
@@ -73,7 +68,7 @@ const Register = () => {
                       mt: "3px",
                       ml: "5px",
                       fontWeight: "500",
-                      color: "red",
+                      color: "var(--color-danger)",
                     }}
                   >
                     {errors.username}
@@ -100,7 +95,7 @@ const Register = () => {
                       mt: "3px",
                       ml: "5px",
                       fontWeight: "500",
-                      color: "red",
+                      color: "var(--color-danger)",
                     }}
                   >
                     {errors.email}
@@ -128,7 +123,7 @@ const Register = () => {
                       mt: "3px",
                       ml: "5px",
                       fontWeight: "500",
-                      color: "red",
+                      color: "var(--color-danger)",
                     }}
                   >
                     {errors.password}
@@ -140,11 +135,11 @@ const Register = () => {
                 type="submit"
                 disabled={isSubmitting || registerLoading}
                 sx={{
-                  color: "#fff",
-                  backgroundColor: "#000",
+                  color: "var(--color-light)",
+                  backgroundColor: "var(--color-dark)",
                   ":disabled": {
-                    backgroundColor: "#181c14",
-                    color: "#fff",
+                    backgroundColor: "var(--color-dark)",
+                    color: "var(--color-light)",
                   },
                 }}
               >
@@ -171,34 +166,34 @@ const Register = () => {
 export default Register;
 
 const StyledTextField = styled(TextField)({
-  accentColor: "red",
-  caretColor: "#fff",
+  accentColor: "var(--color-danger)",
+  caretColor: "var(--color-light)",
   width: "100%",
   // overflow: "hidden",
   "& .MuiOutlinedInput-root": {
     // backgroundColor: "var(--color-accent-primary)",
 
     "& fieldset": {
-      borderColor: "#fff",
-      colors: "#fff",
+      borderColor: "var(--color-light)",
+      colors: "var(--color-light)",
     },
     "&:hover fieldset": {
-      borderColor: "#fff",
-      color: "#fff",
+      borderColor: "var(--color-light)",
+      color: "var(--color-light)",
     },
     "& .Mui-focused fieldset": {
-      borderColor: "red",
-      color: "#fff",
+      borderColor: "var(--color-danger)",
+      color: "var(--color-light)",
     },
     "& input": {
-      // backgroundColor: "#fff",
-      color: "#fff",
+      // backgroundColor: "var(--color-light)",
+      color: "var(--color-light)",
     },
   },
   "& .MuiInputLabel-root": {
-    color: "#fff",
+    color: "var(--color-light)",
   },
   "& .MuiInputLabel-root.Mui-focused": {
-    color: "#fff",
+    color: "var(--color-light)",
   },
 });

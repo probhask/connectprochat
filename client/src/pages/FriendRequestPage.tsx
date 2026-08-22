@@ -2,32 +2,21 @@ import { Box, Button, Stack, styled } from "@mui/material";
 
 import ReceiveRequest from "@features/FriendRequest/ReceiveRequest/ReceiveRequest";
 import SendRequest from "@features/FriendRequest/SendRequest/SendRequest";
-import { useChatAppSelector } from "@store/hooks";
-import { useEffect } from "react";
 import useFriendRequestContext from "@context/FriendRequestContext";
 
 const FriendRequestPage = () => {
   // Consume the shared instance from FriendRequestContextProvider (mounted
   // in ChatPage) rather than calling useFriendRequest() directly here —
-  // a second, independent hook instance would fetch data but leave the
-  // sentLoading/receivedLoading/error state read by SendRequest/
-  // ReceiveRequest (which read the context's instance) permanently stale.
-  const { tab, changeTab, handleFetchReceivedRequest, handleFetchSentRequest } =
+  // a second, independent hook instance would create its own separate
+  // query-observer state, leaving the sentLoading/receivedLoading/error
+  // state read by SendRequest/ReceiveRequest (which read the context's
+  // instance) out of sync with this page's.
+  //
+  // Both lists load eagerly now (Phase 5 — see useFriendRequest.tsx), not
+  // fetched per active tab, since the badge counts below need both
+  // regardless of which tab is showing.
+  const { tab, changeTab, sentRequests, receivedRequests } =
     useFriendRequestContext();
-  const { received, sended } = useChatAppSelector(
-    (store) => store.friendRequest
-  );
-
-  useEffect(() => {
-    async function handleFunction() {
-      if (tab === "sent") {
-        await handleFetchSentRequest();
-      } else if (tab === "received") {
-        await handleFetchReceivedRequest();
-      }
-    }
-    handleFunction();
-  }, [tab]);
 
   return (
     <Box sx={{ paddingBlock: 1.5, overflowY: "auto" }}>
@@ -40,14 +29,18 @@ const FriendRequestPage = () => {
           onClick={() => changeTab("sent")}
         >
           Sent
-          {sended?.length > 0 && <CountBadge>{sended.length}</CountBadge>}
+          {sentRequests.length > 0 && (
+            <CountBadge>{sentRequests.length}</CountBadge>
+          )}
         </TabButton>
         <TabButton
           active={tab === "received" ? "true" : ""}
           onClick={() => changeTab("received")}
         >
           Received
-          {received?.length > 0 && <CountBadge>{received.length}</CountBadge>}
+          {receivedRequests.length > 0 && (
+            <CountBadge>{receivedRequests.length}</CountBadge>
+          )}
         </TabButton>
       </Stack>
 
@@ -63,8 +56,8 @@ const TabButton = styled(Button)<{ active: string }>(({ active }) => ({
   justifyContent: "center",
   alignItems: "center",
   position: "relative",
-  backgroundColor: active === "true" ? "var(--color-bg-primary)" : "white",
-  color: active === "true" ? "white" : "black",
+  backgroundColor: active === "true" ? "var(--color-bg-primary)" : "var(--color-light)",
+  color: active === "true" ? "var(--color-light)" : "var(--color-dark)",
   boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
   height: "30px",
   marginInline: 9,
@@ -87,6 +80,6 @@ const CountBadge = styled(Box)(() => ({
   p: 0,
   m: 0,
   borderRadius: "50%",
-  backgroundColor: "var(--color-red)",
-  color: "white",
+  backgroundColor: "var(--color-danger)",
+  color: "var(--color-light)",
 }));

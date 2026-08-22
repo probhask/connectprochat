@@ -48,7 +48,7 @@ const NavBarLinks = styled(Box)(({ theme }) => ({
   textTransform: "capitalize",
   maxWidth: 500,
   justifyContent: "space-evenly",
-  color: "white",
+  color: "var(--color-light)",
   [theme.breakpoints.up("sm")]: {
     display: "flex",
   },

@@ -14,21 +14,22 @@ import React, { useMemo } from "react";
 import MuiMenu from "@components/MuiMenu";
 import { convertDate } from "@utils/convertDate";
 import useChatAppContext from "@context/index";
-import { useChatAppSelector } from "@store/hooks";
+import { useConversationDetail } from "@hooks/useConversation";
 import useMessage from "@hooks/useMessage";
 import useMessageContext from "@context/messageContext";
 import useMuiMenu from "@hooks/useMuiMenu";
 
 const ConversationTopBar = React.memo(() => {
   const {
+    conversationRoomId,
     updateConversationRoomId,
     hideConversationTab,
     showProfileTab,
     updateUserProfileId,
   } = useChatAppContext();
-  const conversation = useChatAppSelector(
-    (store) => store.conversationRoom.conversation
-  );
+  // Same queryKey as useConversation's — shares the already-fetched cache
+  // entry, no extra request (Phase 5).
+  const { data: conversation } = useConversationDetail(conversationRoomId);
   const { handleDeleteMessage } = useMessage();
   const { selectedMessageIds } = useMessageContext();
 
@@ -43,6 +44,7 @@ const ConversationTopBar = React.memo(() => {
   };
 
   const getUserProfileId = useMemo(() => {
+    if (!conversation) return "";
     return conversation.isGroupChat
       ? conversation._id
       : !Array.isArray(conversation.participants)
@@ -51,7 +53,8 @@ const ConversationTopBar = React.memo(() => {
   }, [conversation]);
 
   const avatarImage: string = useMemo(() => {
-    if (conversation?.isGroupChat) {
+    if (!conversation) return "";
+    if (conversation.isGroupChat) {
       return conversation.group_picture?.fileName || "";
     }
 
@@ -63,7 +66,8 @@ const ConversationTopBar = React.memo(() => {
   }, [conversation]);
 
   const conversationUserName = useMemo(() => {
-    if (conversation?.isGroupChat) {
+    if (!conversation) return "";
+    if (conversation.isGroupChat) {
       return conversation.groupName;
     }
 
@@ -75,7 +79,7 @@ const ConversationTopBar = React.memo(() => {
   }, [conversation]);
 
   const isOnlineText = useMemo(() => {
-    if (!conversation?.isGroupChat) {
+    if (conversation && !conversation.isGroupChat) {
       if (!Array.isArray(conversation.participants)) {
         const participant = conversation.participants;
 

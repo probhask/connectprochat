@@ -4,13 +4,13 @@ import ActionProfilePreview from "@components/ActionProfilePreview";
 import { Add } from "@mui/icons-material";
 import EmptyMessage from "@components/EmptyMessage";
 import { Stack } from "@mui/material";
-import { useChatAppSelector } from "@store/hooks";
 import useExplore from "@hooks/useExplore";
 
 const Explore = () => {
-  const users = useChatAppSelector((store) => store.exploreUsers);
-
+  // Explore results come straight off the query cache now (Phase 5) —
+  // no Redux selector needed, useExplore owns fetching/caching itself.
   const {
+    users,
     exploreLoading,
     exploreError,
     sendFriendRequest,
@@ -42,7 +42,7 @@ const Explore = () => {
               buttons={[
                 {
                   text: sendingRequest ? "..." : "ADD",
-                  themeColor: "#6256CA",
+                  themeColor: "var(--color-bg-primary)",
                   icon: sendingRequest ? (
                     ""
                   ) : (
