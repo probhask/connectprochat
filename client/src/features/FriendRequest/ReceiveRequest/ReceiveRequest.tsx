@@ -47,7 +47,7 @@ const ReceiveRequest = () => {
                 buttons={[
                   {
                     text: cancelingRequest ? "..." : "REJECT",
-                    themeColor: "#C62E2E",
+                    themeColor: "var(--color-danger)",
                     icon: cancelingRequest ? (
                       ""
                     ) : (
@@ -57,7 +57,7 @@ const ReceiveRequest = () => {
                   },
                   {
                     text: acceptingRequest ? "..." : "Accept",
-                    themeColor: "#347928",
+                    themeColor: "var(--color-success)",
                     icon: acceptingRequest ? (
                       ""
                     ) : (

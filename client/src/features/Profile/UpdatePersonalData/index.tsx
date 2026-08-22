@@ -108,7 +108,7 @@ const UpdatePersonalData = () => {
                 disabled={isSubmitting || updateProfileLoading}
                 sx={{
                   mt: 4,
-                  color: "#fff",
+                  color: "var(--color-light)",
                   backgroundColor: "var(--color-bg-primary)",
                 }}
               >

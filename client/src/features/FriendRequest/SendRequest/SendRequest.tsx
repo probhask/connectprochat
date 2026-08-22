@@ -46,7 +46,7 @@ const SendRequest = () => {
                 buttons={[
                   {
                     text: cancelingRequest ? "..." : "CANCEL",
-                    themeColor: "#C62E2E",
+                    themeColor: "var(--color-danger)",
                     icon: cancelingRequest ? (
                       ""
                     ) : (

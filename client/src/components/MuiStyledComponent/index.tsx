@@ -11,15 +11,15 @@ export const StyledUserAvatar = styled(Avatar)<{
   height: height ? height : 40,
   border:
     live === "true"
-      ? "2px solid green"
+      ? "2px solid var(--color-success)"
       : border
       ? `2px solid ${border}`
       : "none",
-  backgroundColor: backcolor ? backcolor : "#BDBDBD",
+  backgroundColor: backcolor ? backcolor : "var(--color-border)",
 }));
 
 export const StyledActionButton = styled(Button)<{ pallet?: string }>(
-  ({ theme, pallet = "#347928" }) => ({
+  ({ theme, pallet = "var(--color-success)" }) => ({
     width: "90vw",
     maxWidth: "250px",
     height: 25,
@@ -34,12 +34,12 @@ export const StyledActionButton = styled(Button)<{ pallet?: string }>(
     alignSelf: "center",
     ":hover": {
       backgroundColor: `${pallet}`,
-      color: "white",
+      color: "var(--color-light)",
     },
     ":disabled": {
-      backgroundColor: "#d1d5db",
-      borderColor: "#9ca3af",
-      color: "white",
+      backgroundColor: "var(--color-border)",
+      borderColor: "var(--color-border)",
+      color: "var(--color-light)",
       fontWeight: 900,
       fontSize: "1.3rem",
     },

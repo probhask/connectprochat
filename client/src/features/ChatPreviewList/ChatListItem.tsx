@@ -122,7 +122,7 @@ const ChatListItem = React.memo(
 
           <Typography
             variant="body2"
-            sx={{ fontSize: "0.7rem", color: "gray", flexShrink: 0 }}
+            sx={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", flexShrink: 0 }}
           >
             {timeText}
           </Typography>

@@ -34,7 +34,7 @@ const ChatListItemText = React.memo(
             variant="body2"
             sx={{
               fontSize: "0.8rem",
-              color: "gray",
+              color: "var(--color-text-secondary)",
               textOverflow: "clip",
               lineClamp: 1,
               overflow: "hidden",

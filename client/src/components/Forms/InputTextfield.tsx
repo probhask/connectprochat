@@ -57,7 +57,7 @@ const InputTextfield = React.memo(
               mt: "3px",
               ml: "5px",
               fontWeight: "500",
-              color: "red",
+              color: "var(--color-danger)",
             }}
           >
             {error}
@@ -70,10 +70,10 @@ const InputTextfield = React.memo(
 InputTextfield.displayName = "InputTextfield";
 export default InputTextfield;
 const StyledTextField = styled(TextField)({
-  accentColor: "red",
-  caretColor: "#fff",
+  accentColor: "var(--color-danger)",
+  caretColor: "var(--color-light)",
   width: "100%",
-  color: "#fff",
+  color: "var(--color-light)",
 
   "& .MuiInputBase-root": {
     color: "rgba(255,255,255,1)",
@@ -86,36 +86,36 @@ const StyledTextField = styled(TextField)({
     borderBottomColor: "rgba(255,255,255,0.6)", // default border color (white with  opacity 0.5)
   },
   "& .MuiInput-underline:hover:before": {
-    borderBottomColor: "#fff", // hover state border color (fully white )
+    borderBottomColor: "var(--color-light)", // hover state border color (fully white )
   },
   "& .MuiInput-underline:hover:after": {
-    borderBottomColor: "#fff",
+    borderBottomColor: "var(--color-light)",
   },
   "& .MuiInput-underline:after": {
     borderBottomColor: "var(--color-bg-primary)", // Focused state border color  when we leave cursor out off input
   },
   "& .Mui-error:after": {
-    borderBottomColor: "red",
+    borderBottomColor: "var(--color-danger)",
   },
   // overflow: "hidden",
   "& .MuiOutlinedInput-root": {
     // backgroundColor: "var(--color-accent-primary)",
-    color: "#fff",
+    color: "var(--color-light)",
     "& fieldset": {
-      borderColor: "#fff",
-      colors: "#fff",
+      borderColor: "var(--color-light)",
+      colors: "var(--color-light)",
     },
     "&:hover fieldset": {
-      borderColor: "#fff",
-      color: "#fff",
+      borderColor: "var(--color-light)",
+      color: "var(--color-light)",
     },
     "& .Mui-focused fieldset": {
-      borderColor: "#fff",
-      color: "#fff",
+      borderColor: "var(--color-light)",
+      color: "var(--color-light)",
     },
     "& input": {
-      //   backgroundColor: "#fff",
-      color: "#fff",
+      //   backgroundColor: "var(--color-light)",
+      color: "var(--color-light)",
     },
   },
   "& .MuiInputLabel-root": {
@@ -123,9 +123,9 @@ const StyledTextField = styled(TextField)({
     fontWeight: 600,
   },
   "& label .Mui-focused": {
-    color: "white",
+    color: "var(--color-light)",
   },
   // "& .MuiInputLabel-root.Mui-focused": {
-  //   color: "#fff",
+  //   color: "var(--color-light)",
   // },
 });

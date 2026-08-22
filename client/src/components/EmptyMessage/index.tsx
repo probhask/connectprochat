@@ -45,7 +45,7 @@ const EmptyMessage = React.memo(
             variant="contained"
             sx={{
               backgroundColor: "var(--color-bg-primary)",
-              color: "white",
+              color: "var(--color-light)",
               mt: 3,
               height: "30px",
             }}

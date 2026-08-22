@@ -65,8 +65,8 @@ const UserProfilePic = React.memo(() => {
           bottom: 5,
           right: 10,
           zIndex: 34,
-          color: "white",
-          bgcolor: "#000",
+          color: "var(--color-light)",
+          bgcolor: "var(--color-dark)",
           "& :hover": {
             bgColor: "none",
           },

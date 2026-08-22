@@ -109,7 +109,7 @@ const UpdatePassword = () => {
                 disabled={isSubmitting || updatePasswordLoading}
                 sx={{
                   mt: 4,
-                  color: "#fff",
+                  color: "var(--color-light)",
                   backgroundColor: "var(--color-bg-primary)",
                 }}
               >

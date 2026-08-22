@@ -42,7 +42,7 @@ const Explore = () => {
               buttons={[
                 {
                   text: sendingRequest ? "..." : "ADD",
-                  themeColor: "#6256CA",
+                  themeColor: "var(--color-bg-primary)",
                   icon: sendingRequest ? (
                     ""
                   ) : (

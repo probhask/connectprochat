@@ -110,9 +110,9 @@ const VerifyOtp = () => {
             type="submit"
             disabled={verifyLoading}
             sx={{
-              color: "#fff",
-              backgroundColor: "#000",
-              ":disabled": { backgroundColor: "#181c14", color: "#fff" },
+              color: "var(--color-light)",
+              backgroundColor: "var(--color-dark)",
+              ":disabled": { backgroundColor: "var(--color-dark)", color: "var(--color-light)" },
             }}
           >
             {verifyLoading ? "Verifying..." : "Verify"}
@@ -140,15 +140,15 @@ const VerifyOtp = () => {
 export default VerifyOtp;
 
 const StyledTextField = styled(TextField)({
-  accentColor: "red",
-  caretColor: "#fff",
+  accentColor: "var(--color-danger)",
+  caretColor: "var(--color-light)",
   width: "100%",
   "& .MuiOutlinedInput-root": {
-    "& fieldset": { borderColor: "#fff", colors: "#fff" },
-    "&:hover fieldset": { borderColor: "#fff", color: "#fff" },
-    "& .Mui-focused fieldset": { borderColor: "red", color: "#fff" },
-    "& input": { color: "#fff" },
+    "& fieldset": { borderColor: "var(--color-light)", colors: "var(--color-light)" },
+    "&:hover fieldset": { borderColor: "var(--color-light)", color: "var(--color-light)" },
+    "& .Mui-focused fieldset": { borderColor: "var(--color-danger)", color: "var(--color-light)" },
+    "& input": { color: "var(--color-light)" },
   },
-  "& .MuiInputLabel-root": { color: "#fff" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
+  "& .MuiInputLabel-root": { color: "var(--color-light)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "var(--color-light)" },
 });

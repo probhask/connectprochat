@@ -32,7 +32,7 @@ const UserInfo = React.memo(({ additionalText, name, url }: UserInfoProps) => {
         sx={{
           width: "120px",
           height: "120px",
-          background: "gray",
+          background: "var(--color-border)",
           border: "2px solid var(--color-bg-secondary)",
           boxShadow: "0px 0px 6px var(--color-bg-secondary)",
         }}

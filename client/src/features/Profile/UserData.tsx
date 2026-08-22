@@ -62,27 +62,27 @@ const UserData = () => {
         }}
       >
         <StyledButton
-          bgcolor="#e53935"
+          bgcolor="var(--color-danger)"
           onClick={handleRemoveProfilePic}
           disabled={removePicLoading}
         >
           <NoPhotography /> Remove Picture
         </StyledButton>
         <StyledButton
-          bgcolor="#388e3c"
+          bgcolor="var(--color-success)"
           onClick={() => navigate("update-personal")}
         >
           <ContactMail /> Update Account Details
         </StyledButton>
 
         <StyledButton
-          bgcolor="#ffa000"
+          bgcolor="var(--color-warning)"
           onClick={() => navigate("update-password")}
         >
           <Key /> Change Password
         </StyledButton>
         <StyledButton
-          bgcolor="#d32f2f"
+          bgcolor="var(--color-danger)"
           onClick={handleLogoutUser}
           disabled={logoutLoading}
         >
@@ -96,9 +96,9 @@ UserData.displayName = "UserData";
 export default UserData;
 
 const StyledButton = styled(Button)<{ bgcolor?: string }>(
-  ({ bgcolor = "blue" }) => ({
+  ({ bgcolor = "var(--color-bg-primary)" }) => ({
     backgroundColor: bgcolor,
-    color: "white",
+    color: "var(--color-light)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",

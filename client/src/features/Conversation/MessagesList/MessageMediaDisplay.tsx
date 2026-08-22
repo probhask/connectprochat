@@ -90,8 +90,8 @@ const MessageMediaDisplay = React.memo(
           <Box
             component="div"
             sx={{
-              backgroundColor: isOwn ? "#7c93c3" : "var(--color-light-gray)",
-              color: "black",
+              backgroundColor: isOwn ? "var(--color-bg-primary)" : "var(--color-light-gray)",
+              color: "var(--color-dark)",
               width: {
                 sm: "250px",
                 md: "300px",

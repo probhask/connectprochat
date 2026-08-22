@@ -11,7 +11,7 @@ const Profile = () => {
         sx={{
           width: "100%",
           position: "relative",
-          color: "white",
+          color: "var(--color-light)",
         }}
       >
         <Box
@@ -31,7 +31,7 @@ const Profile = () => {
         />
         <Box
           sx={{
-            bgcolor: "rgba(0,0,0,0.7)",
+            bgcolor: "var(--color-bg-overlay)",
             width: "100%",
             minHeight: "100Vh",
             display: "flex",
@@ -47,11 +47,11 @@ const Profile = () => {
             sx={{
               justifyContent: "center",
               padding: "20px 20px",
-              // bgcolor: "white",
+              // bgcolor: "var(--color-light)",
               backgroundColor: "rgba(0,0,0,0.8)",
               boxShadow: "0 0 4px rgba(255,255,255,0.4)",
               minHeight: "300px",
-              color: "white",
+              color: "var(--color-light)",
               borderRadius: "20px",
               // width: { xs: 300, sm: 400 },
               minWidth: { xs: "90%", sm: 300 },

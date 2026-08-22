@@ -8,9 +8,9 @@
  * prefers-color-scheme dark, .dark manual-toggle override) — that part of
  * the pre-revamp design was fine, it just wasn't the only place colors were
  * defined. Semantic set expanded (surface/border/overlay/success/danger)
- * to cover the ad-hoc hex literals found scattered across components
- * (#C62E2E, #347928, etc.) — those get migrated onto these tokens
- * component-by-component in Phase 5, not in this infra-only pass.
+ * to cover the ad-hoc hex/named-color literals that were scattered across
+ * ~40 components (#C62E2E, #347928, "white", "red", etc.) — migrated onto
+ * these tokens component-by-component in Phase 5.
  */
 
 :root {
@@ -37,11 +37,6 @@
   --color-dark: #000000;
   --color-light-gray: #f5f7f8;
   --color-border: #d1d5db;
-
-  /* Deprecated alias — kept during the Phase 5 migration so components
-     still referencing var(--color-red) don't break; remove once nothing
-     references it anymore. */
-  --color-red: var(--color-danger);
 }
 
 /*
@@ -77,6 +72,4 @@
   --color-dark: #000000;
   --color-light-gray: #f5f7f8;
   --color-border: #404040;
-
-  --color-red: var(--color-danger);
 }

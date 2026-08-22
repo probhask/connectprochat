@@ -60,7 +60,7 @@ const FriendsListPage = () => {
                 },
                 {
                   text: unfriending ? "..." : "Unfriend",
-                  themeColor: "#C62E2E",
+                  themeColor: "var(--color-danger)",
                   icon: unfriending ? (
                     ""
                   ) : (
