@@ -1,4 +1,6 @@
 import { logger } from "../../lib/logger";
+import { runTransaction } from "../../lib/transaction";
+import * as conversationService from "../../modules/conversation/service";
 import { verifySocketJWT } from "../../utils/verifySocketJWT";
 import { SocketEvent } from "../constants";
 import { addActiveSocket, markUserOnline } from "../presence";
@@ -27,6 +29,24 @@ export function registerConnectionHandlers(socket: AppSocket): void {
     // conversation) can be delivered with io.to(userId).emit(...) instead
     // of every handler having to look up getActiveSocketIds itself.
     socket.join(userId);
+
+    // Also join every conversation this user is already a participant in
+    // — not just the one they open. Without this, a socket only became a
+    // member of a conversation's room when that specific conversation was
+    // opened client-side, so io.to(conversationId).emit(MESSAGE_RECEIVED)
+    // only ever reached whichever one chat happened to be open; the chat
+    // list's live last-message preview (and everything else) needed a
+    // manual reload for every OTHER conversation. A newly created
+    // conversation still gets joined the existing way, when it's opened.
+    try {
+      const conversationIds = await runTransaction((tx) =>
+        conversationService.getUserConversationIds(tx, userId)
+      );
+      socket.join(conversationIds);
+    } catch (error) {
+      logger.error(`Failed to join ${userId}'s conversation rooms`, error);
+    }
+
     try {
       await markUserOnline(userId);
     } catch (error) {
