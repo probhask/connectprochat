@@ -1,5 +1,4 @@
 export { default as authReducer } from "./authSlice";
-export { default as exploreUsersReducer } from "./exploreUsers";
 export { default as chatListReducer } from "./chatList";
 export { default as conversationRoomReducer } from "./conversation";
 export { default as friendRequestReducer } from "./friendRequest";

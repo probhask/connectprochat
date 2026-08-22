@@ -2,7 +2,6 @@ import {
   authReducer,
   chatListReducer,
   conversationRoomReducer,
-  exploreUsersReducer,
   friendRequestReducer,
   friendsReducer,
   sideProfileReducer,
@@ -13,7 +12,6 @@ import { configureStore } from "@reduxjs/toolkit";
 const chatAppStore = configureStore({
   reducer: {
     auth: authReducer,
-    exploreUsers: exploreUsersReducer,
     chatList: chatListReducer,
     conversationRoom: conversationRoomReducer,
     friendRequest: friendRequestReducer,
