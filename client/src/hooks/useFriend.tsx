@@ -1,14 +1,16 @@
 import { CONVERSATION, FRIEND, SUCCESS_RESPONSE } from "types";
 import { addInitialFriendData, removeFriend } from "@store/slices/friends";
 import { useCallback, useEffect, useState } from "react";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
+import { useChatAppDispatch } from "@store/hooks";
 
 import toast from "react-hot-toast";
 import useChatAppContext from "@context/index";
 import useFetchData from "./useFetchData";
 
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
 const useFriend = () => {
-  const currentUserId = useChatAppSelector((store) => store.auth._id);
   const dispatch = useChatAppDispatch();
 
   const [removeFriendId, setRemoveFriendId] = useState<string | null>(null);
@@ -17,29 +19,20 @@ const useFriend = () => {
   >(null);
   const { updateConversationRoomId, showConversationTab } = useChatAppContext();
 
-  // Fetch Friends Request (GET Request)
-  const [friendData, friendLoading, friendError, , abortFriends] = useFetchData<
-    FRIEND[]
-  >(
-    "/user/friend",
-    "GET",
-    {
-      params: {
-        userId: currentUserId,
-      },
-    },
-    true
-  );
+  // Fetch Friends (GET Request) — /user/friend -> /user/friends (plural),
+  // self-scoped via the token now, no userId param.
+  const [friendResp, friendLoading, friendError, , abortFriends] =
+    useFetchData<ApiEnvelope<FRIEND[]>>("/user/friends", "GET", {}, true);
 
   useEffect(() => {
-    if (friendData) {
-      dispatch(addInitialFriendData(friendData)); // add initial friend data to redux
+    if (friendResp?.data) {
+      dispatch(addInitialFriendData(friendResp.data)); // add initial friend data to redux
     }
-  }, [friendData, dispatch]);
+  }, [friendResp, dispatch]);
 
-  // Unfriend Request
+  // Unfriend Request — friendId only now, actor comes from the token.
   const [
-    unfriendData,
+    unfriendResp,
     unfriendLoading,
     unfriendError,
     unfriendUser,
@@ -51,22 +44,19 @@ const useFriend = () => {
       if (friendId) {
         setRemoveFriendId(friendId);
         unfriendUser({
-          data: {
-            userId: currentUserId,
-            friendId: friendId,
-          },
+          data: { friendId },
         });
       }
     },
-    [currentUserId, unfriendUser]
+    [unfriendUser]
   );
   useEffect(() => {
-    if (unfriendData && unfriendData.success && removeFriendId) {
+    if (unfriendResp && unfriendResp.success && removeFriendId) {
       dispatch(removeFriend(removeFriendId)); // remove friend fromm redux
       setRemoveFriendId(null); // clear friendId
       toast.success("Removed successfully");
     }
-  }, [unfriendData, dispatch, removeFriendId]);
+  }, [unfriendResp, dispatch, removeFriendId]);
 
   useEffect(() => {
     if (unfriendError && !unfriendLoading) {
@@ -74,41 +64,45 @@ const useFriend = () => {
     }
   }, [unfriendError, unfriendLoading]);
 
-  // enter conversation room
+  // Enter conversation room — /conversation/room?userIds=[...] no longer
+  // exists; it's GET /conversation/direct/:otherUserId now (self implied
+  // from the token, friendship checked server-side).
   const [
-    conversationRoomData,
+    conversationRoomResp,
     conversationRoomLoading,
     conversationRoomError,
     findConversationRoom,
     abortConversationRoom,
-  ] = useFetchData<CONVERSATION>("/conversation/room", "GET", {}, false);
+  ] = useFetchData<ApiEnvelope<CONVERSATION>>(
+    "/conversation/direct/placeholder",
+    "GET",
+    {},
+    false
+  );
 
   const handleFindConversationRoom = useCallback(
     async (friendId: string) => {
       if (friendId) {
         setConversationFriendId(friendId);
         findConversationRoom({
-          params: {
-            userIds: [currentUserId, friendId],
-          },
+          url: `/conversation/direct/${friendId}`,
         });
       }
     },
-    [currentUserId, findConversationRoom]
+    [findConversationRoom]
   );
 
   useEffect(() => {
     if (
-      conversationRoomData &&
-      conversationRoomData._id &&
+      conversationRoomResp?.data?._id &&
       conversationFriendId
     ) {
-      updateConversationRoomId(conversationRoomData._id);
+      updateConversationRoomId(conversationRoomResp.data._id);
       showConversationTab();
       setConversationFriendId(null);
     }
   }, [
-    conversationRoomData,
+    conversationRoomResp,
     conversationFriendId,
     updateConversationRoomId,
     showConversationTab,

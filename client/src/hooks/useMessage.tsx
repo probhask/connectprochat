@@ -1,7 +1,7 @@
-import { DOC_PREVIEW, SUCCESS_RESPONSE } from "types";
+import { DOC_PREVIEW, MESSAGE } from "types";
 import React, { useCallback, useEffect, useState } from "react";
 import { addMessage, removeMessages } from "@store/slices/conversation";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
+import { useChatAppDispatch } from "@store/hooks";
 
 import axiosError from "@utils/AxiosError/axiosError";
 import toast from "react-hot-toast";
@@ -12,22 +12,23 @@ import useRefresh from "./useRefresh";
 
 // import useSocketContext from "@context/SocketContext";
 
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
 const updateDocPreview = (uploadedFileName: string): DOC_PREVIEW => {
   if (uploadedFileName) {
     const ext = uploadedFileName.split(".").pop()?.toLowerCase();
     if (ext) {
       return { extension: ext, name: uploadedFileName };
-    } else {
-      console.log("unsupported file type");
-      return { extension: "?", name: "unsupported" };
     }
-  } else {
-    return { extension: "?", name: "not found" };
+    return { extension: "?", name: "unsupported" };
   }
+  return { extension: "?", name: "not found" };
 };
 
 const useMessage = () => {
-  const currentUserId = useChatAppSelector((store) => store.auth._id);
+  // Sender/actor come from the token server-side now — nothing here needs
+  // the current user's id anymore (see sendMessage/handleDeleteMessage).
   const { selectedMessageIds, clearAllSelectedMessage } = useMessageContext();
   const { conversationRoomId: conversationId } = useChatAppContext();
   // const { socket } = useSocketContext();
@@ -74,20 +75,13 @@ const useMessage = () => {
           };
           reader.readAsDataURL(uploadedFile);
           reader.onerror = () => {
-            console.error("reader error");
+            toast.error("Couldn't read that file");
           };
         } else {
           const createdPreview = updateDocPreview(uploadedFileName);
-
-          if (createdPreview.name) {
-            setImagePreview(null);
-            setDocPreview(createdPreview);
-          } else {
-            console.log("failed to make file preview");
-          }
+          setImagePreview(null);
+          setDocPreview(createdPreview);
         }
-      } else {
-        console.log("uploadedFile not found");
       }
     },
     []
@@ -98,76 +92,74 @@ const useMessage = () => {
     async (message: string) => {
       try {
         if (!(message || file) || !conversationId) {
-          console.error("message, conversationId required");
           return;
         }
 
-        // solo message
+        // solo message — folded into the conversation module (Phase 2):
+        // /message/send no longer exists, it's POST
+        // /conversation/:id/messages, sender comes from the token (no
+        // senderId in the body), and the message is the wrapped
+        // { success, message, data } envelope's data, not .message.
         if (!file) {
-          const response = await api.post(
-            "/message/send",
-            {
-              conversationId,
-              message: message.trim(),
-              senderId: currentUserId,
-            },
+          const response = await api.post<ApiEnvelope<MESSAGE>>(
+            `/conversation/${conversationId}/messages`,
+            { text: message.trim() },
             { signal: controller.signal }
           );
-          if (response.data) {
-            dispatch(addMessage(response.data.message));
-            // socket.emit("sendMessage", response.data.message);
+          if (response.data?.data) {
+            dispatch(addMessage(response.data.data));
+            // socket.emit("sendMessage", response.data.data);
           }
           return;
         }
 
-        // file upload message
-        const sender = currentUserId;
+        // file upload message — /upload/message is unchanged, but it only
+        // takes { conversationId, text } (multipart) now; sender comes
+        // from the token, and the created message is response.data.data.
         const text = message || "";
 
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("sender", sender); // Add the sender field
-        formData.append("conversationId", conversationId); // Add the conversation ID
+        formData.append("conversationId", conversationId);
         formData.append("text", text);
 
-        const response = await api.post("/upload/message", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-        if (response.data) {
-          dispatch(addMessage(response.data.message));
-          // socket.emit("send-message", response.data.message);
+        const response = await api.post<ApiEnvelope<MESSAGE>>(
+          "/upload/message",
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        if (response.data?.data) {
+          dispatch(addMessage(response.data.data));
+          // socket.emit("send-message", response.data.data);
         }
       } catch (error) {
         axiosError(error);
       }
     },
-    [file, conversationId, currentUserId, api]
+    [file, conversationId, api]
   );
 
   //Delete  Messages (DELETE request)
-
+  // Folded into the conversation module (Phase 2) — /message/delete no
+  // longer exists, it's DELETE /conversation/messages, and the acting
+  // user comes from the token (no userId in the body).
   const [deleteData, deleteLoading, deleteError, deleteMessage, ,] =
-    useFetchData<SUCCESS_RESPONSE>("message/delete", "DELETE");
+    useFetchData<ApiEnvelope<null>>("/conversation/messages", "DELETE");
 
   const handleDeleteMessage = useCallback(async () => {
     if (!(selectedMessageIds.length > 0)) {
-      console.log("provide array of messages id");
-
       return;
     }
 
     deleteMessage({
       data: {
         messageIds: selectedMessageIds,
-        userId: currentUserId,
       },
     });
-  }, [currentUserId, selectedMessageIds]);
+  }, [selectedMessageIds]);
 
   useEffect(() => {
-    if (deleteData && selectedMessageIds.length > 0) {
+    if (deleteData?.success && selectedMessageIds.length > 0) {
       dispatch(removeMessages(selectedMessageIds));
       // socket.emit("remove-message", selectedMessageIds);
 

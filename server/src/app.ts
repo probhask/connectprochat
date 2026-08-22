@@ -10,7 +10,8 @@ import helmet from "helmet";
 import { authLimiter, otpLimiter } from "./middlewares/rateLimiter";
 import otpRoute from "./modules/otp/routes";
 import path from "path";
-import uploadRoute, { downloadRouter } from "./modules/upload/routes";
+import { requestLogger } from "./middlewares/requestLogger";
+import uploadRoute, { downloadRouter, viewRouter } from "./modules/upload/routes";
 import { authRouter, userRouter } from "./modules/user/routes";
 
 /**
@@ -27,6 +28,7 @@ export function createApp() {
   app.set("trust proxy", 1);
 
   app.use(helmet());
+  app.use(requestLogger);
   app.use(
     cors({
       origin: env.FRONTEND_URL,
@@ -52,15 +54,24 @@ export function createApp() {
   app.use("/api/conversation", conversationRoute);
   app.use("/api/upload", uploadRoute);
   app.use("/api/download", downloadRouter);
-  // Deliberately no /api/file or express.static over the upload directory:
-  // the pre-revamp app served the ENTIRE upload directory publicly via
-  // express.static mounted before verifyJWT on both /api/upload and
-  // /api/file, so every uploaded file — including private chat media — was
-  // downloadable with zero authentication, completely bypassing the
-  // auth-gated /api/download route that existed right next to it. The only
-  // way to fetch a file now is GET /api/download/:filename, which requires
-  // a valid token and resolves the path safely (see
-  // modules/upload/service.ts's resolveSafeDownloadPath).
+  // /api/file/:filename serves media inline for <img>/<video> tags, which
+  // can't attach the Authorization header /api/download requires — see
+  // modules/upload/controllers.ts's viewFile doc comment for why this is
+  // safe unauthenticated (unlike the removed express.static-over-the-whole-
+  // upload-dir bug: this only ever serves one exact, unguessable filename
+  // via resolveSafeDownloadPath, never a directory listing). helmet's
+  // default Cross-Origin-Resource-Policy: same-origin would otherwise block
+  // the client (a different origin/port in dev, a different domain in
+  // prod) from loading these images at all — cross-origin is the whole
+  // point of this route, so it's loosened only here, not globally.
+  app.use(
+    "/api/file",
+    (_req, res, next) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      next();
+    },
+    viewRouter
+  );
 
   // 404
   app.all("*", (req, res) => {

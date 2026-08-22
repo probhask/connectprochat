@@ -44,30 +44,19 @@
   --color-red: var(--color-danger);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-primary: #1e153a;
-    --color-bg-secondary: #3b2d66;
-    --color-bg-surface: #2a2150;
-    --color-bg-overlay: rgba(0, 0, 0, 0.65);
-
-    --color-text-primary: #c6aecf;
-    --color-text-secondary: #a89bb5;
-
-    --color-accent-primary: #c43d18;
-
-    --color-danger: #e57373;
-    --color-success: #66bb6a;
-    --color-warning: #ffb74d;
-
-    --color-light: #000000;
-    --color-dark: #e0e0e0;
-    --color-light-gray: #f5f7f8;
-    --color-border: #404040;
-
-    --color-red: var(--color-danger);
-  }
-}
+/*
+ * No automatic `prefers-color-scheme: dark` block here on purpose. This
+ * app has no dark-mode design pass yet (Phase 5+), and `--color-light` is
+ * used throughout as a literal "white surface" background (chat list,
+ * message bubbles, side profile), not as a semantic token — auto-flipping
+ * it to black whenever the OS/browser is in dark mode broke every one of
+ * those surfaces for anyone testing with system dark mode on, while the
+ * previously-deployed build (which had no tokens.css at all) was
+ * unaffected. Only the explicit `.dark` class below opts in, and nothing
+ * applies that class yet — reintroduce an automatic media query once
+ * there's an actual designed dark theme, with tokens split by role
+ * (surface vs on-dark-text) instead of overloading one token for both.
+ */
 
 .dark {
   --color-bg-primary: #1e153a;

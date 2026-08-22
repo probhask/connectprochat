@@ -13,15 +13,17 @@ import {
 } from "@store/slices/friendRequest";
 import { getSessionStorage, storeToSessionStorage } from "@utils/localStorage";
 import { useCallback, useEffect, useState } from "react";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
+import { useChatAppDispatch } from "@store/hooks";
 
 import { addFriend } from "@store/slices/friends";
 import toast from "react-hot-toast";
 import useFetchData from "./useFetchData";
 
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
 const useFriendRequest = () => {
   const dispatch = useChatAppDispatch();
-  const currentUserId = useChatAppSelector((store) => store.auth._id);
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null);
   const [acceptRequestId, setAcceptRequestId] = useState<string | null>(null);
   const [cancelType, setCancelType] = useState<CANCEL_TYPE | null>(null);
@@ -46,48 +48,52 @@ const useFriendRequest = () => {
   }, []);
 
   //------------------------------ sent friend  request---------------------------//
-  // 1️⃣  Sent Friend Requests (GET Request)
+  // 1️⃣  Sent Friend Requests (GET Request) — self-scoped via the token now,
+  // no userId param. Response is { data: { sent: [...] } } for this filter,
+  // not a flat array.
   const [
-    sentFriendReqData,
+    sentFriendReqResp,
     sentLoading,
     sentError,
     fetchSentRequests,
     abortSentRequest,
-  ] = useFetchData<SENT_FRIEND_REQUEST>(
+  ] = useFetchData<ApiEnvelope<{ sent: SENT_FRIEND_REQUEST }>>(
     "/friendRequest",
     "GET",
-    { params: { userId: currentUserId, requestType: "SEND" } },
+    { params: { requestType: "SEND" } },
     false
   );
   useEffect(() => {
-    if (sentFriendReqData) {
-      dispatch(addInitialSentFriendRequestData([...sentFriendReqData]));
+    if (sentFriendReqResp?.data?.sent) {
+      dispatch(addInitialSentFriendRequestData([...sentFriendReqResp.data.sent]));
     }
-  }, [sentFriendReqData, dispatch]);
+  }, [sentFriendReqResp, dispatch]);
 
   const handleFetchSentRequest = useCallback(async () => {
     fetchSentRequests();
   }, [fetchSentRequests]);
 
-  //2️⃣  Received Friend Requests (GET Request)
+  //2️⃣  Received Friend Requests (GET Request) — same shape change.
   const [
-    receivedFriendReqData,
+    receivedFriendReqResp,
     receivedLoading,
     receivedError,
     fetchReceiveFriendRequests,
     abortReceivedRequests,
-  ] = useFetchData<RECEIVE_FRIEND_REQUEST>(
+  ] = useFetchData<ApiEnvelope<{ received: RECEIVE_FRIEND_REQUEST }>>(
     "/friendRequest",
     "GET",
-    { params: { userId: currentUserId, requestType: "RECEIVE" } },
+    { params: { requestType: "RECEIVE" } },
     false
   );
 
   useEffect(() => {
-    if (receivedFriendReqData) {
-      dispatch(addInitialReceivedFriendRequestData([...receivedFriendReqData]));
+    if (receivedFriendReqResp?.data?.received) {
+      dispatch(
+        addInitialReceivedFriendRequestData([...receivedFriendReqResp.data.received])
+      );
     }
-  }, [receivedFriendReqData, dispatch]);
+  }, [receivedFriendReqResp, dispatch]);
 
   const handleFetchReceivedRequest = useCallback(async () => {
     fetchReceiveFriendRequests();
@@ -95,14 +101,20 @@ const useFriendRequest = () => {
 
   //------------------------------ received friend  request---------------------------//
 
-  // 3️⃣   Accept Friend Requests (PUT Request)
+  // 3️⃣   Accept Friend Requests (PUT Request) — same path/body, response
+  // now wraps { user } under .data.
   const [
-    acceptFriendReqData,
+    acceptFriendReqResp,
     acceptLoading,
     acceptError,
     acceptFriendRequest,
     abortAcceptRequest,
-  ] = useFetchData<{ user: FRIEND }>("/friendRequest", "PUT", {}, false);
+  ] = useFetchData<ApiEnvelope<{ user: FRIEND }>>(
+    "/friendRequest",
+    "PUT",
+    {},
+    false
+  );
 
   const handleAcceptRequest = useCallback(
     async (requestId: string) => {
@@ -119,13 +131,13 @@ const useFriendRequest = () => {
     [acceptFriendRequest]
   );
   useEffect(() => {
-    if (acceptFriendReqData && acceptFriendReqData.user && acceptRequestId) {
-      dispatch(addFriend(acceptFriendReqData.user)); // add friend in redux
+    if (acceptFriendReqResp?.data?.user && acceptRequestId) {
+      dispatch(addFriend(acceptFriendReqResp.data.user)); // add friend in redux
       dispatch(removeReceivedRequest(acceptRequestId)); // remove receive request redux
       setAcceptRequestId(null); // remove accept request id
       toast.success("Friend added successfully");
     }
-  }, [acceptFriendReqData, dispatch, acceptRequestId]);
+  }, [acceptFriendReqResp, dispatch, acceptRequestId]);
 
   // toast error
   useEffect(() => {
@@ -134,14 +146,14 @@ const useFriendRequest = () => {
     }
   }, [acceptError, acceptLoading]);
 
-  // 4️⃣ Cancel Friend Requests (DELETE Request)
+  // 4️⃣ Cancel Friend Requests (DELETE Request) — same path/body.
   const [
-    cancelFriendReqData,
+    cancelFriendReqResp,
     cancelLoading,
     cancelError,
     cancelFriendRequest,
     abortCancelRequest,
-  ] = useFetchData<FRIEND>("/friendRequest", "DELETE", {}, false);
+  ] = useFetchData<ApiEnvelope<null>>("/friendRequest", "DELETE", {}, false);
 
   const handleCancelRequest = useCallback(
     async (requestId: string, cancelType: CANCEL_TYPE) => {
@@ -161,7 +173,7 @@ const useFriendRequest = () => {
   );
 
   useEffect(() => {
-    if (cancelFriendReqData && cancelRequestId && cancelType) {
+    if (cancelFriendReqResp?.success && cancelRequestId && cancelType) {
       if (cancelType === "SEND") {
         dispatch(removeSentRequest(cancelRequestId)); //remove sent request from redux
       } else if (cancelType === "RECEIVE") {
@@ -171,7 +183,7 @@ const useFriendRequest = () => {
       setCancelType(null); //remove cancel type
       toast.success("Request removed successfully");
     }
-  }, [cancelFriendReqData, dispatch, cancelRequestId, cancelType]);
+  }, [cancelFriendReqResp, dispatch, cancelRequestId, cancelType]);
 
   // toast error
   useEffect(() => {

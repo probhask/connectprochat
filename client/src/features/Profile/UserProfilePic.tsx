@@ -49,14 +49,21 @@ const UserProfilePic = React.memo(() => {
             ? `${import.meta.env.VITE_BACKEND_URL}/api/file/${
                 user?.profile_picture?.fileName
               }`
-            : ""
+            : undefined
         }
-        // alt={user?.username}
+        alt={user?.username}
         width="150px"
         height="150px"
         border="var(--color-bg-primary)"
         backcolor="gary"
-      />
+        sx={{ fontSize: "3rem" }}
+      >
+        {/* MUI's Avatar only renders children when there's no src, or the
+            <img> fails to load — not gating this on whether a fileName
+            exists means a stale/deleted upload also falls back to the
+            initial instead of the generic silhouette icon. */}
+        {user?.username ? user.username.charAt(0).toUpperCase() : null}
+      </StyledUserAvatar>
 
       <IconButton
         sx={{

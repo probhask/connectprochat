@@ -119,9 +119,22 @@ const ConversationTopBar = React.memo(() => {
       <ProfileInfo>
         <IconButton onClick={() => navigateToUser(getUserProfileId)}>
           <Avatar
-            src={`${import.meta.env.VITE_BACKEND_URL}/api/file/${avatarImage}`}
+            alt={conversationUserName}
+            src={
+              avatarImage
+                ? `${import.meta.env.VITE_BACKEND_URL}/api/file/${avatarImage}`
+                : undefined
+            }
             sx={{ width: 35, height: 35 }}
-          />
+          >
+            {/* MUI's Avatar only renders children when there's no src, or
+                the <img> fails to load — not gating this on avatarImage
+                means a stale/deleted upload also falls back to the
+                initial instead of the generic silhouette icon. */}
+            {conversationUserName
+              ? conversationUserName.charAt(0).toUpperCase()
+              : null}
+          </Avatar>
         </IconButton>
         <Box>
           <Typography variant="body1" sx={{ m: 0, p: 0, lineHeight: "1rem" }}>

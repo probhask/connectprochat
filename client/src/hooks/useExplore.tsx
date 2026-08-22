@@ -1,23 +1,24 @@
 import { FRIEND_REQUEST, SHORT_USER } from "types";
 import { addInitialUserData, removeUser } from "@store/slices/exploreUsers";
 import { useCallback, useEffect, useState } from "react";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
+import { useChatAppDispatch } from "@store/hooks";
 
 import { addSentRequest } from "@store/slices/friendRequest";
 import toast from "react-hot-toast";
 import useFetchData from "./useFetchData";
 
-type ExploreUser = {
-  users: SHORT_USER[];
-  currentPage: number;
-  totalPages: number;
-  totalUsers: number;
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
+// Matches lib/services/paginate-query's PaginationResult shape.
+type ExplorePage = {
+  results: SHORT_USER[];
+  pagination: { limit: number; page: number; total: number; totalPages: number };
 };
 
 const limit = 10;
 
 const useExplore = () => {
-  const currentUserId = useChatAppSelector((store) => store.auth._id);
   const [page, setPage] = useState(1);
   const dispatch = useChatAppDispatch();
   const [isMoreAvailable, setIsMoreAvailable] = useState(false);
@@ -25,21 +26,21 @@ const useExplore = () => {
     null
   );
 
+  // /user/explore is self-scoped via the token now (no userId param), and
+  // the response shape changed: { users, currentPage, totalPages,
+  // totalUsers } -> { data: { results, pagination: { page, totalPages } } }
+  // (lib/services/paginate-query's PaginationResult).
   const [
-    exploreData,
+    exploreResp,
     exploreLoading,
     exploreError,
     exploreFetchData,
     exploreAbort,
-  ] = useFetchData<ExploreUser>(
+  ] = useFetchData<ApiEnvelope<ExplorePage>>(
     "/user/explore",
     "GET",
     {
-      params: {
-        userId: currentUserId,
-        page,
-        limit,
-      },
+      params: { page, limit },
     },
     true
   );
@@ -48,48 +49,47 @@ const useExplore = () => {
   }, [exploreFetchData]);
 
   useEffect(() => {
-    if (exploreData) {
-      dispatch(addInitialUserData([...exploreData.users]));
-    }
-    if (exploreData) {
-      if (exploreData.currentPage >= exploreData.totalPages) {
-        setIsMoreAvailable(false);
-      } else {
-        setIsMoreAvailable(true);
-      }
-    }
-  }, [exploreData, dispatch]);
+    const exploreData = exploreResp?.data;
+    if (!exploreData) return;
+
+    dispatch(addInitialUserData([...exploreData.results]));
+    setIsMoreAvailable(
+      exploreData.pagination.page < exploreData.pagination.totalPages
+    );
+  }, [exploreResp, dispatch]);
 
   const [
-    sendRequestData,
+    sendRequestResp,
     sendRequestLoading,
     sendRequestError,
     sendRequestFetchData,
     sendRequestAbort,
-  ] = useFetchData<FRIEND_REQUEST>("/friendRequest/send", "POST", {}, false);
+  ] = useFetchData<ApiEnvelope<FRIEND_REQUEST>>(
+    "/friendRequest/send",
+    "POST",
+    {},
+    false
+  );
   const sendFriendRequest = useCallback(
     async (receiverId: string) => {
       if (receiverId) {
         setCurrentReceiverId(receiverId);
         sendRequestFetchData({
-          data: {
-            sender: currentUserId,
-            receiver: receiverId,
-          },
+          data: { receiverId },
         });
       }
     },
-    [sendRequestFetchData, currentUserId]
+    [sendRequestFetchData]
   );
 
   useEffect(() => {
-    if (sendRequestData && sendRequestData._id && currentReceiverId) {
-      dispatch(addSentRequest(sendRequestData));
+    if (sendRequestResp?.data?._id && currentReceiverId) {
+      dispatch(addSentRequest(sendRequestResp.data));
       dispatch(removeUser(currentReceiverId));
       setCurrentReceiverId(null);
       toast.success("Request sent successfully");
     }
-  }, [sendRequestData, dispatch, currentReceiverId]);
+  }, [sendRequestResp, dispatch, currentReceiverId]);
 
   useEffect(() => {
     if (sendRequestError && !sendRequestLoading) {
