@@ -1,9 +1,9 @@
 import { Button, Stack, Typography } from "@mui/material";
+import { useEffect, useRef } from "react";
 
 import { ChangePasswordFormValidation } from "@utils/validation";
 import { Formik } from "formik";
 import InputTextfield from "@components/Forms/InputTextfield";
-import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import useProfileContext from "@context/ProfileContext";
 
@@ -11,6 +11,19 @@ const UpdatePassword = () => {
   const navigate = useNavigate();
   const { handleUpdatePassword, updatePasswordLoading, updatePasswordError } =
     useProfileContext();
+
+  // Track whether a submit here actually caused the in-flight mutation,
+  // so a success elsewhere (or a stale error from a previous visit)
+  // doesn't navigate away on this screen.
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    if (submittedRef.current && !updatePasswordLoading && !updatePasswordError) {
+      submittedRef.current = false;
+      setTimeout(() => navigate(-1), 1000);
+    }
+  }, [updatePasswordLoading, updatePasswordError, navigate]);
+
   return (
     <Stack
       sx={{
@@ -30,23 +43,10 @@ const UpdatePassword = () => {
         validateOnChange={true}
         onSubmit={(values, { setSubmitting }) => {
           if (values.password && values.newPassword) {
-            handleUpdatePassword(values.password, values.newPassword)
-              .then(() => {
-                if (!updatePasswordError) {
-                  setTimeout(() => {
-                    navigate(-1);
-                  }, 1000);
-                }
-              })
-              .catch((error) => {
-                toast.error(error?.message);
-              })
-              .finally(() => {
-                setSubmitting(false);
-              });
-          } else {
-            setSubmitting(false);
+            submittedRef.current = true;
+            handleUpdatePassword(values.password, values.newPassword);
           }
+          setSubmitting(false);
         }}
       >
         {({

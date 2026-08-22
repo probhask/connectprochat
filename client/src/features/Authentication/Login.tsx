@@ -33,9 +33,8 @@ const Login = () => {
         initialValues={{ identifier: "", password: "" }}
         validationSchema={LoginFormValidationSchema}
         onSubmit={(values, { setSubmitting }) => {
-          handleLogin(values.identifier, values.password).finally(() => {
-            setSubmitting(false);
-          });
+          handleLogin(values.identifier, values.password);
+          setSubmitting(false);
         }}
       >
         {({

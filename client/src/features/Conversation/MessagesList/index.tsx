@@ -3,6 +3,8 @@ import React, { useEffect, useRef } from "react";
 
 import MessageAvatar from "./MessageAvatar";
 import { useChatAppSelector } from "@store/hooks";
+import useChatAppContext from "@context/index";
+import { useConversationMessages } from "@hooks/useConversation";
 import useMessageContext from "@context/messageContext";
 
 const MessageItem = React.lazy(() => import("./MessageItem"));
@@ -21,9 +23,10 @@ const MessageListContainer = styled(Box)({
 
 const MessagesList = React.memo(() => {
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const messages = useChatAppSelector(
-    (store) => store.conversationRoom.messages
-  );
+  const { conversationRoomId } = useChatAppContext();
+  // Same queryKey as useConversation's — shares the already-fetched cache
+  // entry, no extra request (Phase 5).
+  const { data: messages = [] } = useConversationMessages(conversationRoomId);
   const currentUserId = useChatAppSelector((store) => store.auth._id);
   const {
     selectedMessageIds,

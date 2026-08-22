@@ -6,6 +6,7 @@ import { logger } from "../lib/logger";
 import { registerConnectionHandlers } from "./handlers/connection";
 import { registerConversationHandlers } from "./handlers/conversation";
 import { registerMessageHandlers } from "./handlers/message";
+import { setIo } from "./ioInstance";
 import { markUserOffline, removeActiveSocket } from "./presence";
 import { AppServer, AppSocket } from "./types";
 
@@ -46,5 +47,6 @@ export function initSocket(httpServer: HttpServer): AppServer {
     });
   });
 
+  setIo(io);
   return io;
 }

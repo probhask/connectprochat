@@ -1,11 +1,9 @@
-import { FRIEND_REQUEST, SHORT_USER } from "types";
+import { FRIEND_REQUEST, SENT_FRIEND_REQUEST, SHORT_USER } from "types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { addSentRequest } from "@store/slices/friendRequest";
 import { httpClient } from "@services/apis/httpClient";
 import { queryKeys } from "./queryKeys";
 import toast from "react-hot-toast";
-import { useChatAppDispatch } from "@store/hooks";
 import { useState } from "react";
 
 /** Server always wraps responses as { success, message, data }. */
@@ -24,13 +22,13 @@ const limit = 10;
  * results are server cache, not app/session state, so they belong in the
  * query cache (own loading/error tracking, refetch-on-focus, no manual
  * "initial" reducer to keep in sync) rather than a Redux slice someone has
- * to remember to dispatch into. friendRequest stays on Redux for now
- * (migrates in its own pass) — sendFriendRequest's mutation still updates
- * it directly so the Friend Request page's Sent tab keeps working.
+ * to remember to dispatch into. sendFriendRequest also writes straight
+ * into queryKeys.friendRequest.all("SEND")'s cache (see
+ * useFriendRequest.tsx, migrated the same way) so the Friend Request
+ * page's Sent tab picks it up without a shared Redux slice.
  */
 const useExplore = () => {
   const [page, setPage] = useState(1);
-  const dispatch = useChatAppDispatch();
   const queryClient = useQueryClient();
   const [currentReceiverId, setCurrentReceiverId] = useState<string | null>(
     null
@@ -73,7 +71,10 @@ const useExplore = () => {
       setCurrentReceiverId(receiverId);
     },
     onSuccess: (friendRequest, receiverId) => {
-      dispatch(addSentRequest(friendRequest));
+      queryClient.setQueryData<SENT_FRIEND_REQUEST | undefined>(
+        queryKeys.friendRequest.all("SEND"),
+        (old) => (old ? [...old, friendRequest] : old)
+      );
       // Optimistically drop the now-requested user out of the cached
       // explore page rather than waiting on a refetch.
       queryClient.setQueryData<ExplorePage | undefined>(queryKey, (old) =>

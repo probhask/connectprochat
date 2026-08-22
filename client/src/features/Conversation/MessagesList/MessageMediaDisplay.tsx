@@ -6,7 +6,7 @@ import { LazyLoadImage } from "react-lazy-load-image-component";
 import type { MEDIA_TYPE } from "types";
 import axiosError from "@utils/AxiosError/axiosError";
 import { getDocPreview } from "@utils/getDocPreview";
-import useRefresh from "@hooks/useRefresh";
+import { httpClient } from "@services/apis/httpClient";
 
 type MessageMediaDisplayProps = {
   media: MEDIA_TYPE;
@@ -15,8 +15,6 @@ type MessageMediaDisplayProps = {
 
 const MessageMediaDisplay = React.memo(
   ({ media, isOwn = false }: MessageMediaDisplayProps) => {
-    const api = useRefresh();
-
     const docPreview: { extension: string; preview: string } = useMemo(() => {
       let createPreview: string = "";
       let extension: string = "";
@@ -37,7 +35,7 @@ const MessageMediaDisplay = React.memo(
 
     const downloadFile = async (fileName: string) => {
       try {
-        const response = await api.get(`download/${fileName}`, {
+        const response = await httpClient.get(`/download/${fileName}`, {
           responseType: "blob",
         });
 

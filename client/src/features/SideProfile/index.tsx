@@ -1,5 +1,5 @@
 import { ErrorState, LoadingState } from "@components/FetchingStates";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Stack, styled } from "@mui/material";
 
 import EmptyMessage from "@components/EmptyMessage";
@@ -8,25 +8,15 @@ import TopNavigateBtn from "./TopNavigateBtn";
 import { USER } from "types";
 import UserInfo from "./UserInfo";
 import useChatAppContext from "@context/index";
-import { useChatAppSelector } from "@store/hooks";
-import { useLocation } from "react-router-dom";
 import useSideProfile from "@hooks/useSideProfile";
 
 const SideProfile = React.memo(() => {
-  const { isGroupProfile, userProfileId, profileTab } = useChatAppContext();
-  const sideProfileData = useChatAppSelector((store) => store.sideProfile);
-  const profile = useChatAppSelector((store) => store.sideProfile);
-  const location = useLocation();
-
-  const data = useMemo(() => {
-    if (profile && profile.length > 0) {
-      if ("isMember" in profile[0]) {
-        return profile[0];
-      } else if ("isFriend" in profile[0]) {
-        return profile[0];
-      }
-    }
-  }, [profile]);
+  const { userProfileId } = useChatAppContext();
+  // useSideProfile owns userProfileId/isGroupProfile/visibility itself now
+  // (Phase 5 — see useSideProfile.tsx); `profile` is the single
+  // GROUP_PROFILE | USER_PROFILE object straight off the query cache, not
+  // the array-of-one the old Redux slice artificially wrapped it in.
+  const { profile, profileError, profileLoading } = useSideProfile();
 
   const profileData: {
     url: string;
@@ -35,26 +25,24 @@ const SideProfile = React.memo(() => {
     users: USER[];
     profileId: string;
   } = useMemo(() => {
-    if (data) {
+    if (profile) {
       // profile is group
-      if ("isMember" in data) {
+      if ("isMember" in profile) {
         return {
-          url: data.group?.group_picture?.fileName || "",
-          name: data.group.groupName,
-          additionalText: `${data.group.participants?.length || 0} members`,
-          users: data.group.participants ?? [],
-          profileId: data.group._id,
-        };
-      } else {
-        return {
-          url: data?.user?.profile_picture?.fileName || "",
-          name: data?.user.username,
-          additionalText: data?.user.email,
-          users: data?.user?.friends ?? [],
-          profileId: data.user._id,
+          url: profile.group?.group_picture?.fileName || "",
+          name: profile.group.groupName,
+          additionalText: `${profile.group.participants?.length || 0} members`,
+          users: profile.group.participants ?? [],
+          profileId: profile.group._id,
         };
       }
-      // Default return if data is not valid
+      return {
+        url: profile.user?.profile_picture?.fileName || "",
+        name: profile.user.username,
+        additionalText: profile.user.email,
+        users: profile.user?.friends ?? [],
+        profileId: profile.user._id,
+      };
     }
     return {
       url: "",
@@ -63,50 +51,13 @@ const SideProfile = React.memo(() => {
       users: [],
       profileId: "",
     };
-  }, [data]);
+  }, [profile]);
 
-  // const btnStatus = useMemo(() => {
-  //   if (data) {
-  //     if ("isMember" in data) {
-  //       return data?.isMember;
-  //     } else {
-  //       return data?.isFriend;
-  //     }
-  //   }
-  //   return false;
-  // }, [data]);
-  const isGroup = useMemo(() => {
-    if (data) {
-      if (data.type === "GROUP_PROFILE") {
-        return true;
-      }
-      return false;
-    }
-    return false;
-  }, [data]);
-
-  const {
-    handleFetchProfileData,
-    profileError,
-    profileLoading,
-    abortProfileFetch,
-  } = useSideProfile();
-
-  useEffect(() => {
-    if (
-      userProfileId &&
-      ((location.pathname === "/" && profileTab) || window.innerWidth > 600)
-    ) {
-      handleFetchProfileData(userProfileId, isGroupProfile);
-    }
-    return () => {
-      abortProfileFetch();
-    };
-  }, [userProfileId, isGroupProfile, location.pathname]);
+  const isGroup = profile?.type === "GROUP_PROFILE";
 
   return (
     <ProfileInfoContainer>
-      {sideProfileData?.length > 0 && (
+      {profile && (
         <>
           <TopNavigateBtn />
           <UserInfo
@@ -119,22 +70,12 @@ const SideProfile = React.memo(() => {
           {profileData?.users && (
             <RelatedUsers users={profileData.users} isGroup={isGroup} />
           )}
-          {/* {data?.type && (
-            <ActionButtons
-              type={data?.type}
-              btnStatus={btnStatus}
-              profileId={profileData.profileId}
-            />
-          )} */}
         </>
       )}
-      {!profileLoading && sideProfileData?.length === 0 && (
-        <EmptyMessage
-          primaryText="Select a profile"
-          // secondaryText="To view profile details"
-        />
+      {!profileLoading && !profile && (
+        <EmptyMessage primaryText="Select a profile" />
       )}
-      {profileLoading && sideProfileData?.length === 0 && <LoadingState />}
+      {profileLoading && !profile && <LoadingState />}
       {!profileLoading && profileError && userProfileId && (
         <ErrorState error={"unable to load data"} />
       )}

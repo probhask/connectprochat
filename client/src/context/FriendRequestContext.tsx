@@ -1,30 +1,28 @@
-import type { CANCEL_TYPE, TAB_FRIENDS_REQUEST } from "types";
+import type {
+  CANCEL_TYPE,
+  RECEIVE_FRIEND_REQUEST,
+  SENT_FRIEND_REQUEST,
+  TAB_FRIENDS_REQUEST,
+} from "types";
 import React, { createContext, useContext } from "react";
 
 import useFriendRequest from "@hooks/useFriendRequest";
 
 type FriendRequestContextType = {
   acceptLoading: boolean;
-  acceptError: string | null;
-  handleAcceptRequest: (requestId: string) => Promise<void>;
+  acceptError: boolean;
+  handleAcceptRequest: (requestId: string) => void;
   acceptRequestId: string | null;
-  abortAcceptRequest: () => void;
   cancelLoading: boolean;
-  cancelError: string | null;
-  handleCancelRequest: (
-    requestId: string,
-    cancelType: CANCEL_TYPE
-  ) => Promise<void>;
+  cancelError: boolean;
+  handleCancelRequest: (requestId: string, cancelType: CANCEL_TYPE) => void;
   cancelRequestId: string | null;
-  abortCancelRequest: () => void;
+  receivedRequests: RECEIVE_FRIEND_REQUEST;
   receivedLoading: boolean;
-  receivedError: string | null;
-  handleFetchReceivedRequest: () => Promise<void>;
-  abortReceivedRequests: () => void;
+  receivedError: boolean;
+  sentRequests: SENT_FRIEND_REQUEST;
   sentLoading: boolean;
-  sentError: string | null;
-  handleFetchSentRequest: () => Promise<void>;
-  abortSentRequest: () => void;
+  sentError: boolean;
   tab: TAB_FRIENDS_REQUEST;
   changeTab: (tab: TAB_FRIENDS_REQUEST) => void;
 };
@@ -44,26 +42,22 @@ export const FriendRequestContextProvider = ({
     acceptError,
     handleAcceptRequest,
     acceptRequestId,
-    abortAcceptRequest,
 
     // cancel Request
     cancelLoading,
     cancelError,
     handleCancelRequest,
     cancelRequestId,
-    abortCancelRequest,
 
-    // fetch received friends request
+    // received friends request
+    receivedRequests,
     receivedLoading,
     receivedError,
-    handleFetchReceivedRequest,
-    abortReceivedRequests,
 
-    //fetch sent request
+    // sent request
+    sentRequests,
     sentLoading,
     sentError,
-    handleFetchSentRequest,
-    abortSentRequest,
 
     //tabs
     tab,
@@ -76,26 +70,22 @@ export const FriendRequestContextProvider = ({
     acceptError,
     handleAcceptRequest,
     acceptRequestId,
-    abortAcceptRequest,
 
     // cancel Request
     cancelLoading,
     cancelError,
     handleCancelRequest,
     cancelRequestId,
-    abortCancelRequest,
 
-    // fetch received friends request
+    // received friends request
+    receivedRequests,
     receivedLoading,
     receivedError,
-    handleFetchReceivedRequest,
-    abortReceivedRequests,
 
-    //fetch sent request
+    // sent request
+    sentRequests,
     sentLoading,
     sentError,
-    handleFetchSentRequest,
-    abortSentRequest,
 
     //tabs
     tab,

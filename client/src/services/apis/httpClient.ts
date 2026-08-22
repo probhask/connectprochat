@@ -32,6 +32,34 @@ httpClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Shared in-flight refresh promise — every 401 that lands while a refresh
+// is already underway awaits THIS instead of firing its own
+// /auth/refresh call. Without this, a page that fires several requests
+// in parallel (now the normal case: TanStack Query hooks each query
+// independently, so a single page transition can easily fire 5-6 at
+// once) had every one of them race to refresh independently on a stale/
+// expired token — as many concurrent /auth/refresh calls as there were
+// 401s, tripping the authLimiter rate limit and, worse, dropping some
+// requests' retries entirely if a later refresh response raced ahead of
+// an earlier one and left the earlier request's retry using a token that
+// got superseded before it even sent (observed live: a friend request
+// that genuinely existed in the DB not showing up because its list
+// fetch's retry got lost in the pile-up).
+let refreshPromise: Promise<string | null> | null = null;
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = httpClient
+      .get("/auth/refresh")
+      .then((res) => res.data?.data?.accessToken ?? null)
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 httpClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -45,18 +73,14 @@ httpClient.interceptors.response.use(
     }
 
     prevRequest.sent = true;
-    try {
-      const { data } = await httpClient.get("/auth/refresh");
-      const newAccessToken = data?.data?.accessToken;
-      if (newAccessToken) {
-        chatAppStore.dispatch(updateAccessToken(newAccessToken));
-        prevRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return httpClient(prevRequest);
-      }
-    } catch {
-      // fall through to reject below — the caller (or a route guard) is
-      // responsible for redirecting to login on a persistent 401.
+    const newAccessToken = await refreshAccessToken();
+    if (newAccessToken) {
+      chatAppStore.dispatch(updateAccessToken(newAccessToken));
+      prevRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      return httpClient(prevRequest);
     }
+    // No new token (refresh itself failed) — the caller (or a route
+    // guard) is responsible for redirecting to login on a persistent 401.
     return Promise.reject(error);
   }
 );

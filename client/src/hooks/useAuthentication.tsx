@@ -2,81 +2,91 @@ import { addAuthData, logoutUser } from "@store/slices/authSlice";
 import { useCallback, useEffect, useState } from "react";
 import { useChatAppDispatch } from "@store/hooks";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 
 import { AUTH } from "types";
-import axiosError from "@utils/AxiosError/axiosError";
+import { AxiosError } from "axios";
+import { getErrorMessage } from "@utils/AxiosError/axiosError";
+import { httpClient } from "@services/apis/httpClient";
 import toast from "react-hot-toast";
-import useFetchData from "./useFetchData";
-import useRefresh from "./useRefresh";
 
 /** Server always wraps responses as { success, message, data }. */
 type ApiEnvelope<T> = { success: boolean; message: string; data: T };
 
 const EMAIL_NOT_VERIFIED_CODE = "EMAIL_NOT_VERIFIED";
 
+/** Phase 5 — off useRefresh/useFetchData (the per-mount-interceptor
+ * pattern httpClient.ts's doc comment describes replacing) onto
+ * httpClient + useMutation. */
 const useAuthentication = () => {
   const dispatch = useChatAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
-  const api = useRefresh(); // the Axios instance that actually carries the auth header
 
   ////////////////////////////////////////////////////////////////
   //login user
-  const [
-    loginResp,
-    loginLoading,
-    loginError,
-    loginUser,
-    abortLogin,
-    ,
-    loginDetailError,
-  ] = useFetchData<ApiEnvelope<AUTH>>("/auth/login", "POST");
-  // useFetchData exposes only the response, not the request — track the
+  // useMutation exposes only the response, not the request — track the
   // attempted identifier ourselves so a failed login can redirect to
-  // verify-otp with it pre-filled (loginResp stays null on failure).
+  // verify-otp with it pre-filled.
   // Note: this is only actually usable as an email for that redirect (an
   // unverified account logging in with a username, not their email,
-  // arrives at verify-otp with an empty/wrong email field — a
-  // pre-existing rough edge, since the server's EMAIL_NOT_VERIFIED
-  // response doesn't currently echo the account's email back).
+  // arrives at verify-otp with an empty/wrong email field unless the
+  // server's EMAIL_NOT_VERIFIED response echoes the real email back,
+  // which it now does — see below).
   const [attemptedEmail, setAttemptedEmail] = useState("");
+  const loginMutation = useMutation({
+    mutationFn: async ({
+      identifier,
+      password,
+    }: {
+      identifier: string;
+      password: string;
+    }) => {
+      const response = await httpClient.post<ApiEnvelope<AUTH>>(
+        "/auth/login",
+        { identifier, password }
+      );
+      return response.data.data;
+    },
+  });
+
   const handleLogin = useCallback(
-    async (identifier: string, password: string) => {
+    (identifier: string, password: string) => {
       if (!identifier || !password) {
         toast.error("Email/username and password are required");
         return;
       }
       setAttemptedEmail(identifier);
-      loginUser({
-        data: { identifier, password },
-      });
+      loginMutation.mutate({ identifier, password });
     },
-    [loginUser]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   useEffect(() => {
-    if (loginResp?.data?._id && !loginLoading) {
-      dispatch(addAuthData({ ...loginResp.data }));
+    if (loginMutation.data?._id) {
+      dispatch(addAuthData({ ...loginMutation.data }));
       toast.success("Login successful");
       toast.loading("Redirecting...", { duration: 1000 });
       setTimeout(() => {
         navigate(location?.state?.from || "/", { replace: true });
       }, 1000);
     }
-  }, [loginResp, loginLoading, dispatch, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginMutation.data, dispatch, navigate]);
 
   useEffect(() => {
-    if (!loginError || loginLoading) return;
+    if (!loginMutation.isError) return;
 
-    // A raw AxiosError, not the parsed error message string — inspect it
-    // for the typed EMAIL_NOT_VERIFIED code the server sends (see
-    // modules/user/controllers/auth.controllers.ts's login) instead of
-    // just showing a generic toast for what's actually an actionable state.
+    // Inspect the raw AxiosError for the typed EMAIL_NOT_VERIFIED code the
+    // server sends (see modules/user/controllers/auth.controllers.ts's
+    // login) instead of just showing a generic toast for what's actually
+    // an actionable state.
     const loginErrors = (
-      loginDetailError as {
-        response?: { data?: { errors?: { code?: string; email?: string } } };
-      }
+      loginMutation.error as AxiosError<{
+        errors?: { code?: string; email?: string };
+      }>
     )?.response?.data?.errors;
 
     if (loginErrors?.code === EMAIL_NOT_VERIFIED_CODE) {
@@ -89,52 +99,66 @@ const useAuthentication = () => {
       });
       return;
     }
-    toast.error(loginError);
-  }, [loginError, loginLoading, loginDetailError, attemptedEmail, navigate]);
+    toast.error(getErrorMessage(loginMutation.error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginMutation.isError, loginMutation.error, attemptedEmail, navigate]);
 
   ////////////////////////////////////////////////////////////////
   //register user
-  const [
-    registerResp,
-    registerLoading,
-    registerError,
-    registerUser,
-    abortRegister,
-  ] = useFetchData<ApiEnvelope<{ email: string; emailSent: boolean }>>(
-    "/auth/register",
-    "POST"
-  );
+  const registerMutation = useMutation({
+    mutationFn: async ({
+      username,
+      email,
+      password,
+    }: {
+      username: string;
+      email: string;
+      password: string;
+    }) => {
+      const response = await httpClient.post<
+        ApiEnvelope<{ email: string; emailSent: boolean }>
+      >("/auth/register", { username, email, password });
+      return response.data;
+    },
+  });
+
   const handleRegister = useCallback(
-    async (username: string, email: string, password: string) => {
+    (username: string, email: string, password: string) => {
       if (!email || !password || !username) {
         toast.error("Username, email and password are required");
         return;
       }
-      registerUser({
-        data: { email, password, username },
-      });
+      registerMutation.mutate({ username, email, password });
     },
-    [registerUser]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   useEffect(() => {
-    // Registering no longer logs the user in (no accessToken/_id in the
-    // response) — the server requires OTP verification first. Success here
-    // just means the account was created and an email was attempted.
-    if (registerResp?.success && !registerLoading) {
-      if (registerResp.data.emailSent) {
-        toast.success(registerResp.message);
+    // Registering no longer logs the user in — the server requires OTP
+    // verification first. Success here just means the account was
+    // created and an email was attempted.
+    if (registerMutation.data?.success) {
+      if (registerMutation.data.data.emailSent) {
+        toast.success(registerMutation.data.message);
       } else {
-        toast.error("Registered, but the verification email failed to send — use resend on the next screen");
+        toast.error(
+          "Registered, but the verification email failed to send — use resend on the next screen"
+        );
       }
-      navigate("/auth/verify-otp", { state: { email: registerResp.data.email } });
+      navigate("/auth/verify-otp", {
+        state: { email: registerMutation.data.data.email },
+      });
     }
-  }, [registerResp, registerLoading, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerMutation.data, navigate]);
+
   useEffect(() => {
-    if (registerError && !registerLoading) {
-      toast.error(`Error ${registerError}`);
+    if (registerMutation.isError) {
+      toast.error(`Error ${getErrorMessage(registerMutation.error)}`);
     }
-  }, [registerError, registerLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerMutation.isError, registerMutation.error]);
 
   ////////////////////////////////////////////////////////////////////////
   //logout
@@ -142,39 +166,30 @@ const useAuthentication = () => {
     setLogoutLoading(true);
 
     try {
-      // `api` (from useRefresh), not the plain `Axios` export — only `api`
-      // carries the Authorization header, and /auth/logout now requires it
-      // (verifyJWT-gated server-side, scoped to req.userId).
-      const response = await api.post("/auth/logout");
+      const response = await httpClient.post("/auth/logout");
       if (response.data.success) {
         dispatch(logoutUser());
         toast.success("logout successful");
         navigate("/auth/login");
       }
     } catch (error) {
-      axiosError(error);
-
-      toast.error(`Error logout failed`);
+      // Note: axiosError() (the default export) throws rather than
+      // returning — calling it here would make everything after it dead
+      // code. Use getErrorMessage for a message to actually show.
+      toast.error(`Logout failed: ${getErrorMessage(error)}`);
     } finally {
       setLogoutLoading(false);
     }
-  }, [api, dispatch, navigate]);
+  }, [dispatch, navigate]);
 
-  useEffect(() => {
-    return () => {
-      // abortLogout();
-      abortLogin();
-      abortRegister();
-    };
-  }, []);
   return {
     //login
-    loginLoading,
+    loginLoading: loginMutation.isPending,
     handleLogin,
 
     //register
     handleRegister,
-    registerLoading,
+    registerLoading: registerMutation.isPending,
 
     //logout
     logoutLoading,

@@ -1,36 +1,15 @@
 import { Box, List, styled } from "@mui/material";
 import { ErrorState, LoadingState } from "@components/FetchingStates";
-import React, { useEffect } from "react";
 
 import ChatListItem from "./ChatListItem";
 import EmptyMessage from "@components/EmptyMessage";
-import useChatAppContext from "@context/index";
-import { useChatAppSelector } from "@store/hooks";
+import React from "react";
 import useChatList from "@hooks/useChatList";
-import { useLocation } from "react-router-dom";
 
 const ChatPreviewList = React.memo(() => {
-  const chatList = useChatAppSelector((store) => store.chatList);
-  const {
-    chatListLoading,
-    chatListError,
-    abortFetchChatList,
-    handleFetchChatList,
-  } = useChatList();
-  const location = useLocation();
-  const { conversationTab, profileTab } = useChatAppContext();
-
-  useEffect(() => {
-    if (
-      (location.pathname === "/" && !conversationTab && !profileTab) ||
-      ((conversationTab || profileTab) && window.innerWidth > 600)
-    ) {
-      handleFetchChatList();
-    }
-    return () => {
-      abortFetchChatList();
-    };
-  }, [conversationTab, profileTab, location.pathname]);
+  // useChatList owns the "only fetch when visible" condition itself now
+  // (Phase 5 — see useChatList.tsx) via TanStack Query's `enabled`.
+  const { chatList, chatListLoading, chatListError } = useChatList();
 
   return (
     <ChatListContainer className="hide-scrollbar">

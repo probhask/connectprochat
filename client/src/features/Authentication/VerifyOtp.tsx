@@ -37,9 +37,9 @@ const VerifyOtp = () => {
     verifyError,
   } = useOtp();
 
-  // useFetchData's fetchData() never rejects on failure — react to the
-  // resulting state, don't assume the awaited call in the submit handler
-  // succeeded (see useOtp.tsx's doc comment).
+  // Mutations don't reject in the submit handler either — react to the
+  // resulting state, don't assume the call succeeded just because it was
+  // awaited/fired.
   useEffect(() => {
     if (verifyResp?.success && verifyResp.data?._id) {
       dispatch(addAuthData({ ...verifyResp.data }));
@@ -49,7 +49,7 @@ const VerifyOtp = () => {
   }, [verifyResp, navigate, dispatch, location]);
 
   useEffect(() => {
-    if (verifyError) toast.error(verifyError);
+    if (verifyError) toast.error("Invalid or expired code");
   }, [verifyError]);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const VerifyOtp = () => {
   }, [sendResp]);
 
   useEffect(() => {
-    if (sendError) toast.error(sendError);
+    if (sendError) toast.error("Failed to send code");
   }, [sendError]);
 
   const handleVerify = (e: React.FormEvent) => {

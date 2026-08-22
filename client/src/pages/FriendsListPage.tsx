@@ -4,14 +4,12 @@ import { Message, PersonRemove } from "@mui/icons-material";
 import ActionProfilePreview from "@components/ActionProfilePreview";
 import EmptyMessage from "@components/EmptyMessage";
 import { Stack } from "@mui/material";
-import { useChatAppSelector } from "@store/hooks";
 import useFriendContext from "@context/FriendContext";
 
 const FriendsListPage = () => {
-  const friendsList = useChatAppSelector((store) => store.friends);
-
   const {
     //fetch  friends
+    friends: friendsList,
     friendError,
     friendLoading,
     //unfriend

@@ -4,22 +4,15 @@ import { ContactMail, Key, Logout, NoPhotography } from "@mui/icons-material";
 import UserProfilePic from "./UserProfilePic";
 import useAuthentication from "@hooks/useAuthentication";
 import { useChatAppSelector } from "@store/hooks";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useProfileContext from "@context/ProfileContext";
 
 const UserData = () => {
   const user = useChatAppSelector((store) => store.auth);
-  const { handleRemoveProfilePic, removePicLoading, abortRemoveProfilePic } =
-    useProfileContext();
+  const { handleRemoveProfilePic, removePicLoading } = useProfileContext();
   const navigate = useNavigate();
   const { handleLogoutUser, logoutLoading } = useAuthentication();
 
-  useEffect(() => {
-    return () => {
-      abortRemoveProfilePic();
-    };
-  }, []);
   return (
     <Stack
       sx={{

@@ -1,16 +1,13 @@
 import { DOC_PREVIEW, MESSAGE } from "types";
 import React, { useCallback, useEffect, useState } from "react";
-import { addMessage, removeMessages } from "@store/slices/conversation";
-import { useChatAppDispatch } from "@store/hooks";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import axiosError from "@utils/AxiosError/axiosError";
+import { httpClient } from "@services/apis/httpClient";
+import { queryKeys } from "./queryKeys";
 import toast from "react-hot-toast";
 import useChatAppContext from "@context/index";
-import useFetchData from "./useFetchData";
 import useMessageContext from "@context/messageContext";
-import useRefresh from "./useRefresh";
-
-// import useSocketContext from "@context/SocketContext";
 
 /** Server always wraps responses as { success, message, data }. */
 type ApiEnvelope<T> = { success: boolean; message: string; data: T };
@@ -26,20 +23,29 @@ const updateDocPreview = (uploadedFileName: string): DOC_PREVIEW => {
   return { extension: "?", name: "not found" };
 };
 
+/** Appends a message to the cached list, skipping it if already present —
+ * both the HTTP response here AND the real-time messageReceived socket
+ * broadcast (see SocketContext.tsx) can deliver the same message (the
+ * sender is in the room too), so every write path dedupes by _id. */
+function appendMessage(
+  old: MESSAGE[] | undefined,
+  message: MESSAGE
+): MESSAGE[] | undefined {
+  if (!old) return old;
+  if (old.some((m) => m._id === message._id)) return old;
+  return [...old, message];
+}
+
 const useMessage = () => {
   // Sender/actor come from the token server-side now — nothing here needs
   // the current user's id anymore (see sendMessage/handleDeleteMessage).
   const { selectedMessageIds, clearAllSelectedMessage } = useMessageContext();
   const { conversationRoomId: conversationId } = useChatAppContext();
-  // const { socket } = useSocketContext();
-  const api = useRefresh();
-
-  const dispatch = useChatAppDispatch();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [docPreview, setDocPreview] = useState<DOC_PREVIEW | null>(null);
-  const controller = new AbortController();
 
   // file change
   const resetImagePreview = useCallback(() => {
@@ -87,95 +93,81 @@ const useMessage = () => {
     []
   );
 
-  //Send  Messages (POST request)
+  // Send message (text or, if `file` is set, multipart upload) — both
+  // paths write the created message straight into
+  // queryKeys.conversation.messages(conversationId)'s cache.
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ text, file }: { text: string; file: File | null }) => {
+      if (!conversationId) throw new Error("No conversation selected");
+
+      if (!file) {
+        // Folded into the conversation module (Phase 2): sender comes
+        // from the token, not the body.
+        const response = await httpClient.post<ApiEnvelope<MESSAGE>>(
+          `/conversation/${conversationId}/messages`,
+          { text: text.trim() }
+        );
+        return response.data.data;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("conversationId", conversationId);
+      formData.append("text", text || "");
+
+      const response = await httpClient.post<ApiEnvelope<MESSAGE>>(
+        "/upload/message",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return response.data.data;
+    },
+    onSuccess: (message) => {
+      if (!conversationId) return;
+      queryClient.setQueryData<MESSAGE[] | undefined>(
+        queryKeys.conversation.messages(conversationId),
+        (old) => appendMessage(old, message)
+      );
+    },
+    onError: (error) => axiosError(error),
+  });
+
   const sendMessage = useCallback(
     async (message: string) => {
-      try {
-        if (!(message || file) || !conversationId) {
-          return;
-        }
-
-        // solo message — folded into the conversation module (Phase 2):
-        // /message/send no longer exists, it's POST
-        // /conversation/:id/messages, sender comes from the token (no
-        // senderId in the body), and the message is the wrapped
-        // { success, message, data } envelope's data, not .message.
-        if (!file) {
-          const response = await api.post<ApiEnvelope<MESSAGE>>(
-            `/conversation/${conversationId}/messages`,
-            { text: message.trim() },
-            { signal: controller.signal }
-          );
-          if (response.data?.data) {
-            dispatch(addMessage(response.data.data));
-            // socket.emit("sendMessage", response.data.data);
-          }
-          return;
-        }
-
-        // file upload message — /upload/message is unchanged, but it only
-        // takes { conversationId, text } (multipart) now; sender comes
-        // from the token, and the created message is response.data.data.
-        const text = message || "";
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("conversationId", conversationId);
-        formData.append("text", text);
-
-        const response = await api.post<ApiEnvelope<MESSAGE>>(
-          "/upload/message",
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        if (response.data?.data) {
-          dispatch(addMessage(response.data.data));
-          // socket.emit("send-message", response.data.data);
-        }
-      } catch (error) {
-        axiosError(error);
-      }
+      if (!(message || file) || !conversationId) return;
+      await sendMessageMutation.mutateAsync({ text: message, file });
     },
-    [file, conversationId, api]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [file, conversationId]
   );
 
-  //Delete  Messages (DELETE request)
-  // Folded into the conversation module (Phase 2) — /message/delete no
-  // longer exists, it's DELETE /conversation/messages, and the acting
-  // user comes from the token (no userId in the body).
-  const [deleteData, deleteLoading, deleteError, deleteMessage, ,] =
-    useFetchData<ApiEnvelope<null>>("/conversation/messages", "DELETE");
+  // Delete messages — folded into the conversation module (Phase 2):
+  // acting user comes from the token, not a userId in the body.
+  const deleteMutation = useMutation({
+    mutationFn: async (messageIds: string[]) => {
+      await httpClient.delete("/conversation/messages", {
+        data: { messageIds },
+      });
+      return messageIds;
+    },
+    onSuccess: (messageIds) => {
+      if (!conversationId) return;
+      queryClient.setQueryData<MESSAGE[] | undefined>(
+        queryKeys.conversation.messages(conversationId),
+        (old) => old?.filter((m) => !messageIds.includes(m._id))
+      );
+      toast.success("Deleted");
+    },
+    onError: () => toast.error("Failed to delete"),
+  });
 
   const handleDeleteMessage = useCallback(async () => {
-    if (!(selectedMessageIds.length > 0)) {
-      return;
-    }
-
-    deleteMessage({
-      data: {
-        messageIds: selectedMessageIds,
-      },
-    });
-  }, [selectedMessageIds]);
-
-  useEffect(() => {
-    if (deleteData?.success && selectedMessageIds.length > 0) {
-      dispatch(removeMessages(selectedMessageIds));
-      // socket.emit("remove-message", selectedMessageIds);
-
-      // clearAllSelectedMessage();
-    }
-  }, [deleteData, dispatch]);
-
-  useEffect(() => {
-    if (deleteError && !deleteLoading) {
-      toast.error("failed to delete");
-    }
-  }, [deleteError]);
+    if (!(selectedMessageIds.length > 0)) return;
+    deleteMutation.mutate(selectedMessageIds);
+  }, [selectedMessageIds, deleteMutation]);
 
   useEffect(() => {
     return () => {
-      controller.abort();
       clearAllSelectedMessage();
     };
   }, []);
@@ -189,7 +181,7 @@ const useMessage = () => {
     resetImagePreview,
     resetMedia,
     handleDeleteMessage,
-    deleteLoading,
+    deleteLoading: deleteMutation.isPending,
   };
 };
 

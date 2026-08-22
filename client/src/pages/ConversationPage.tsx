@@ -9,24 +9,14 @@ import SendMessage from "@features/Conversation/SendMessage";
 import useChatAppContext from "@context/index";
 import useConversation from "@hooks/useConversation";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 
 const ConversationPage = () => {
   const { conversationTab, conversationRoomId, hideConversationTab } =
     useChatAppContext();
-  const location = useLocation();
-  const { fetchConversation, conversationLoading, conversationError } =
-    useConversation();
-
-  useEffect(() => {
-    if (
-      conversationRoomId &&
-      // conversationTab &&
-      (location.pathname === "/" || window.innerWidth > 600)
-    ) {
-      fetchConversation(conversationRoomId);
-    }
-  }, [conversationRoomId, location, conversationTab]);
+  // useConversation fetches via TanStack Query's `enabled: !!conversationId`
+  // now (Phase 5) — no imperative fetchConversation() effect needed, it
+  // just (re)runs on its own whenever conversationRoomId changes.
+  const { conversationLoading, conversationError } = useConversation();
 
   useEffect(() => {
     if (!conversationRoomId && (conversationTab || window.innerWidth > 600)) {
@@ -50,7 +40,7 @@ const ConversationPage = () => {
             </ChatContainer>
           ) : conversationError ? (
             <ChatContainer>
-              <ErrorState error={conversationError} />
+              <ErrorState error="Failed to load conversation" />
             </ChatContainer>
           ) : (
             <ChatContainer>
