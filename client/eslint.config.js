@@ -23,6 +23,9 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Revamp conventions (mirrors lankwai-backend / GG_BE exactly) — see plan Section C.1
+      'no-console': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
 )

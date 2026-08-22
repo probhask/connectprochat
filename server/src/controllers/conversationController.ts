@@ -53,9 +53,13 @@ export const getConversation = async (req: Request, res: Response) => {
     );
 
     if (otherParticipant) {
+      // Response-shaping only (foundConversation is never saved after this) —
+      // replaces the full participants array with just the other participant
+      // for 1:1-chat display. Cast via `unknown` per TS's own suggestion since
+      // the in-memory shape intentionally diverges from IConversation here.
       foundConversation.participants = {
         ...otherParticipant,
-      } as IConversation["participants"];
+      } as unknown as IConversation["participants"];
       res.status(201).json({
         ...foundConversation.toObject(),
         participants: otherParticipant,
@@ -98,10 +102,10 @@ export const getConversationRoom = async (req: Request, res: Response) => {
 
     // find if both are friend
     const isUserAFriendOfB = userA.friends.some((friendId) =>
-      (friendId as mongoose.Types.ObjectId).equals(userB._id as string)
+      (friendId as mongoose.Types.ObjectId).equals(userB._id.toString())
     );
     const isUserBFriendOfA = userB.friends.some((friendId) =>
-      (friendId as mongoose.Types.ObjectId).equals(userA._id as string)
+      (friendId as mongoose.Types.ObjectId).equals(userA._id.toString())
     );
 
     if (

@@ -49,9 +49,9 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // access token
-    const accessToken = generateAccessToken(user._id as string);
+    const accessToken = generateAccessToken(user._id.toString());
     // refresh token
-    const refreshToken = generateRefreshToken(user._id as string);
+    const refreshToken = generateRefreshToken(user._id.toString());
 
     // saving refresh token with current user
     user.refreshToken = refreshToken;
@@ -173,9 +173,9 @@ export const createNewUser = async (req: Request, res: Response) => {
     }
 
     // access token
-    const accessToken = generateAccessToken(user._id as string);
+    const accessToken = generateAccessToken(user._id.toString());
     // refresh token
-    const refreshToken = generateRefreshToken(user._id as string);
+    const refreshToken = generateRefreshToken(user._id.toString());
 
     // saving refresh token with current user
     user.refreshToken = refreshToken;
@@ -228,7 +228,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         // match if error or user._id is not equal to decode.id of cookie
         if (
           err ||
-          !new mongoose.Types.ObjectId(foundUser._id as string).equals(
+          !new mongoose.Types.ObjectId(foundUser._id.toString()).equals(
             new mongoose.Types.ObjectId(decode.id as string)
           )
         ) {
@@ -237,7 +237,7 @@ export const refreshToken = async (req: Request, res: Response) => {
           return;
         }
 
-        const accessToken = generateAccessToken(foundUser._id as string);
+        const accessToken = generateAccessToken(foundUser._id.toString());
         res.status(201).json({ accessToken });
         return;
       }

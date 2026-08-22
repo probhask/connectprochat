@@ -330,7 +330,7 @@ export const updateMessageStatus = async (req: Request, res: Response) => {
     // filter message if userId is senderId
     messages = messages.filter(
       (message) =>
-        !new mongoose.Types.ObjectId(message.sender as string).equals(userId)
+        !new mongoose.Types.ObjectId(message.sender as unknown as string).equals(userId)
     );
 
     // check conversation

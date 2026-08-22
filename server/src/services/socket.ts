@@ -56,7 +56,7 @@ export const initSocket = (httpServer: HttpServer) => {
     socket.on("sendMessage", async (message: MESSAGE) => {
       const conversation = await Conversation.findById(message.conversationId);
       if (conversation) {
-        const participants = conversation.participants as string[];
+        const participants = conversation.participants as unknown as string[];
         participants.forEach((participant) => {
           if (participant !== message.sender._id) {
             socket.broadcast.emit("receiveMessage", message);

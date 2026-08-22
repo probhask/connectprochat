@@ -1,6 +1,12 @@
 *.env
 node_modules
 
+# Uploaded user media — runtime data, never source. Revamp Phase 0: untracked
+# (was accidentally committed; see plan Section D Phase 0). See Section H for
+# the S3/R2 follow-up that replaces local-disk storage entirely.
+src/upload/*
+!src/upload/.gitkeep
+
 # Logs
 logs
 *.log
