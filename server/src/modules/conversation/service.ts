@@ -61,6 +61,27 @@ export async function assertIsParticipant(
  * any authenticated user could read any conversation (including its full
  * participant list) just by knowing/guessing the id.
  */
+
+/**
+ * Just the ids of every conversation this user is a participant in — used
+ * to join their socket to all of those rooms at connect time (see
+ * sockets/handlers/connection.ts), not to render anything. Without this, a
+ * socket only ever joins a conversation's room when that specific
+ * conversation is opened, so the chat list's live last-message preview
+ * (and any future "new message" indicator) only ever updated for whichever
+ * one conversation happened to be open — everything else needed a reload.
+ */
+export async function getUserConversationIds(
+  tx: TxContext,
+  userId: string
+): Promise<string[]> {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const { data } = await tx.conversation.findMany({
+    participants: { $in: [userObjectId] },
+  });
+  return data.map((c) => c._id.toString());
+}
+
 export async function getConversationById(
   tx: TxContext,
   conversationId: string,
