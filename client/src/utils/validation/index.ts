@@ -1,19 +1,16 @@
 import * as Yup from "yup";
 
 export const LoginFormValidationSchema = Yup.object({
-  email: Yup.string()
-    .email("Invalid email address")
-    .required("Email is required"),
-  password: Yup.string()
-    .min(6)
-    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
-    .matches(/\d/, "Password must contain at least one number")
-    .matches(
-      /[@$!%*?&#]/,
-      "Password must contain at least one special character"
-    )
-    .required("Password is required"),
+  // Login accepts either an email or a username (see
+  // server/src/modules/user/service.ts's findUserByIdentifier) — no
+  // .email() format check here, unlike Register's email field.
+  identifier: Yup.string().required("Email or username is required"),
+  // Login only needs to know a password was typed — the complexity rules
+  // (uppercase/lowercase/digit/special char) belong on Register, where
+  // they enforce what a NEW password must look like. Applying them here
+  // too would reject an existing correct password that predates a
+  // complexity rule change, or simply doesn't happen to match the regex.
+  password: Yup.string().required("Password is required"),
 });
 
 export const RegisterFormValidationSchema = Yup.object({

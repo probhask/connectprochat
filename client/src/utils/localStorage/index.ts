@@ -22,6 +22,6 @@ export const getSessionStorage = <T>(key: string): T | null => {
   return null;
 };
 
-export const storeToSessionStorage = (key: string, data: any) => {
+export const storeToSessionStorage = <T,>(key: string, data: T) => {
   sessionStorage.setItem(key, JSON.stringify(data));
 };

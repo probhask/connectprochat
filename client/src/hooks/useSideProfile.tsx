@@ -1,47 +1,49 @@
 import { useCallback, useEffect } from "react";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
 
 import { SideProfileApiResponse } from "types";
 import { addInitialSideProfile } from "@store/slices/sideProfile";
+import toast from "react-hot-toast";
+import { useChatAppDispatch } from "@store/hooks";
 import useFetchData from "./useFetchData";
 
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
 const useSideProfile = () => {
-  const userId = useChatAppSelector((store) => store.auth._id);
   const dispatch = useChatAppDispatch();
 
+  // /profile never existed on the server — folded into the user module as
+  // GET /user/side-profile, self-scoped via the token (no userId param).
   const [
-    profileData,
+    profileResp,
     profileLoading,
     profileError,
     fetchProfileData,
     abortProfileFetch,
-  ] = useFetchData<SideProfileApiResponse>("/profile", "GET");
+  ] = useFetchData<ApiEnvelope<SideProfileApiResponse>>("/user/side-profile", "GET");
 
   const handleFetchProfileData = useCallback(
     async (userProfileId: string, isGroupProfile: boolean) => {
-      if (!userProfileId) {
-        console.log("profile id not found");
-      }
+      if (!userProfileId) return;
       fetchProfileData({
         params: {
           profileId: userProfileId,
           isGroup: isGroupProfile,
-          userId,
         },
       });
     },
-    [fetchProfileData, userId]
+    [fetchProfileData]
   );
 
   useEffect(() => {
-    if (profileData && !profileLoading) {
-      dispatch(addInitialSideProfile(profileData));
+    if (profileResp?.data && !profileLoading) {
+      dispatch(addInitialSideProfile(profileResp.data));
     }
-  }, [profileData, profileLoading, dispatch]);
+  }, [profileResp, profileLoading, dispatch]);
 
   useEffect(() => {
     if (profileError && !profileLoading) {
-      console.log("failed to fetch profile detail");
+      toast.error("Failed to load profile");
     }
   }, [profileError, profileLoading]);
 

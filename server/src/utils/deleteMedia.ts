@@ -1,6 +1,7 @@
 import Upload, { IUpload } from "../models/upload";
 
 import fs from "fs";
+import { logger } from "../lib/logger";
 import path from "path";
 
 export const deleteMedia = (dbMedia: IUpload) => {
@@ -9,15 +10,15 @@ export const deleteMedia = (dbMedia: IUpload) => {
 
     try {
       //check if the file exist then delete it
-      fs.unlink(mediaPath, (err: any) => {
+      fs.unlink(mediaPath, (err) => {
         if (err && err.code !== "ENOENT") {
-          console.error(`Error deleting media file : ${mediaPath}`, err);
+          logger.error(`Error deleting media file: ${mediaPath}`, err);
         } else {
-          console.log(`Deleted media file :\n`, mediaPath);
+          logger.debug(`Deleted media file: ${mediaPath}`);
         }
       });
     } catch (error) {
-      console.log(error);
+      logger.error(`Failed to delete media file: ${mediaPath}`, error);
       return false;
     }
     return true;

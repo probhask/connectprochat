@@ -1,0 +1,82 @@
+/**
+ * Single source of truth for color. Every other consumer (Tailwind config,
+ * MUI theme, raw component CSS/sx) reads from these custom properties —
+ * nothing outside this file should hardcode a hex/rgb value. See revamp
+ * plan Section B.
+ *
+ * Kept the existing purple palette and 3-tier structure (light :root,
+ * prefers-color-scheme dark, .dark manual-toggle override) — that part of
+ * the pre-revamp design was fine, it just wasn't the only place colors were
+ * defined. Semantic set expanded (surface/border/overlay/success/danger)
+ * to cover the ad-hoc hex literals found scattered across components
+ * (#C62E2E, #347928, etc.) — those get migrated onto these tokens
+ * component-by-component in Phase 5, not in this infra-only pass.
+ */
+
+:root {
+  /* Backgrounds */
+  --color-bg-primary: #433878;
+  --color-bg-secondary: #ffffff;
+  --color-bg-surface: #ffffff; /* cards, panels, elevated surfaces */
+  --color-bg-overlay: rgba(0, 0, 0, 0.5); /* modal/drawer backdrops */
+
+  /* Text */
+  --color-text-primary: #ffe1ff;
+  --color-text-secondary: #555555;
+
+  /* Accent / interactive */
+  --color-accent-primary: #e4b1f0;
+
+  /* Semantic status */
+  --color-danger: #c62e2e;
+  --color-success: #347928;
+  --color-warning: #ffa000;
+
+  /* Neutrals */
+  --color-light: #ffffff;
+  --color-dark: #000000;
+  --color-light-gray: #f5f7f8;
+  --color-border: #d1d5db;
+
+  /* Deprecated alias — kept during the Phase 5 migration so components
+     still referencing var(--color-red) don't break; remove once nothing
+     references it anymore. */
+  --color-red: var(--color-danger);
+}
+
+/*
+ * No automatic `prefers-color-scheme: dark` block here on purpose. This
+ * app has no dark-mode design pass yet (Phase 5+), and `--color-light` is
+ * used throughout as a literal "white surface" background (chat list,
+ * message bubbles, side profile), not as a semantic token — auto-flipping
+ * it to black whenever the OS/browser is in dark mode broke every one of
+ * those surfaces for anyone testing with system dark mode on, while the
+ * previously-deployed build (which had no tokens.css at all) was
+ * unaffected. Only the explicit `.dark` class below opts in, and nothing
+ * applies that class yet — reintroduce an automatic media query once
+ * there's an actual designed dark theme, with tokens split by role
+ * (surface vs on-dark-text) instead of overloading one token for both.
+ */
+
+.dark {
+  --color-bg-primary: #1e153a;
+  --color-bg-secondary: #3b2d66;
+  --color-bg-surface: #2a2150;
+  --color-bg-overlay: rgba(0, 0, 0, 0.65);
+
+  --color-text-primary: #c6aecf;
+  --color-text-secondary: #a89bb5;
+
+  --color-accent-primary: #c43d18;
+
+  --color-danger: #e57373;
+  --color-success: #66bb6a;
+  --color-warning: #ffb74d;
+
+  --color-light: #e0e0e0;
+  --color-dark: #000000;
+  --color-light-gray: #f5f7f8;
+  --color-border: #404040;
+
+  --color-red: var(--color-danger);
+}

@@ -55,7 +55,7 @@ const Explore = () => {
             />
           );
         })}
-      {!exploreError && users.length === 0 && (
+      {!exploreLoading && !exploreError && users.length === 0 && (
         <EmptyMessage primaryText="No User " />
       )}
       {exploreLoading && <LoadingState />}

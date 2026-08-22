@@ -33,3 +33,4 @@ dist-ssr
 *.sw?
 *.env
 *.vscode
+tsconfig.tsbuildinfo

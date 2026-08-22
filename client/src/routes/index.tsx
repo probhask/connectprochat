@@ -11,6 +11,7 @@ import NotFoundPage from "@pages/NotFoundPage";
 import Profile from "@pages/Profile";
 import ProtectedRoute from "@components/ProtectedRoute";
 import Register from "@features/Authentication/Register";
+import VerifyOtp from "@features/Authentication/VerifyOtp";
 import UpdatePassword from "@features/Profile/UpdatePassword";
 import UpdatePersonalData from "@features/Profile/UpdatePersonalData";
 import UserData from "@features/Profile/UserData";
@@ -89,6 +90,10 @@ const routes = createBrowserRouter([
           {
             path: "register",
             element: <Register />,
+          },
+          {
+            path: "verify-otp",
+            element: <VerifyOtp />,
           },
         ],
       },

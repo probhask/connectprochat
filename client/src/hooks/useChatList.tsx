@@ -1,28 +1,29 @@
 import { useCallback, useEffect } from "react";
-import { useChatAppDispatch, useChatAppSelector } from "@store/hooks";
+import { useChatAppDispatch } from "@store/hooks";
 
 import { CHAT_LIST } from "types";
 import { addInitialChatList } from "@store/slices/chatList";
 import useFetchData from "./useFetchData";
 
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
+
 const useChatList = () => {
-  const currentUserId = useChatAppSelector((store) => store.auth._id);
   const dispatch = useChatAppDispatch();
 
+  // chatList folded into the conversation module (Phase 2) — /chatlist no
+  // longer exists, it's GET /conversation/chat-list, and it's self-scoped
+  // via the token now (no userId param).
   const [
-    chatListData,
+    chatListResp,
     chatListLoading,
     chatListError,
     fetchChatList,
     abortFetchChatList,
-  ] = useFetchData<CHAT_LIST[]>(
-    "/chatlist",
+  ] = useFetchData<ApiEnvelope<CHAT_LIST[]>>(
+    "/conversation/chat-list",
     "GET",
-    {
-      params: {
-        userId: currentUserId,
-      },
-    },
+    {},
     false
   );
   const handleFetchChatList = useCallback(async () => {
@@ -30,10 +31,10 @@ const useChatList = () => {
   }, [fetchChatList]);
 
   useEffect(() => {
-    if (chatListData) {
-      dispatch(addInitialChatList(chatListData)); //add to redux
+    if (chatListResp?.data) {
+      dispatch(addInitialChatList(chatListResp.data)); //add to redux
     }
-  }, [chatListData]);
+  }, [chatListResp, dispatch]);
 
   useEffect(() => {
     return () => {

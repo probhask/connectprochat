@@ -49,12 +49,24 @@ const envSchema = yup.object({
     .required("FRONTEND_URL is required")
     .test("is-url", "FRONTEND_URL must be a valid URL", isValidUrl),
 
-  // Provisioned in Phase 0 for the Section G OTP/email-verification feature (Phase 2).
-  // Optional for now so Phase 0/1 (no OTP module yet) don't require a Resend account
-  // to boot; becomes effectively required once modules/otp lands.
-  RESEND_API_KEY: yup.string().optional(),
+  // Email/OTP verification (Section G) — swapped from Resend to Nodemailer
+  // over Gmail SMTP: Resend requires verifying a domain you own before it
+  // will send to arbitrary recipients, and this app doesn't have one.
+  // Gmail SMTP + an account App Password (myaccount.google.com/apppasswords,
+  // requires 2FA enabled) sends to any recipient for free, no domain needed
+  // — the standard option for a personal project without its own domain.
+  // Optional so boot doesn't require these until the otp module needs them.
+  EMAIL_USER: yup.string().email().optional(),
+  EMAIL_PASSWORD: yup.string().optional(),
   SENDER_NAME: yup.string().optional(),
-  SENDER_EMAIL: yup.string().email().optional(),
+
+  // Dev-only bypass so email OTP verification can be tested without inbox
+  // access (no Gmail account needed to click through register -> verify ->
+  // login locally). Only ever honored when NODE_ENV === "development" (see
+  // modules/otp/service.ts) — setting this in a production .env has no
+  // effect by itself, but it should still never be set there, since it's
+  // a static, guessable "skip verification" code.
+  DEV_MASTER_OTP: yup.string().optional(),
 });
 
 export type Env = yup.InferType<typeof envSchema>;

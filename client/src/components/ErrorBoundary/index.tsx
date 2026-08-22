@@ -20,9 +20,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // You can also log the error to an error reporting service
-    console.error("Uncaught error:", error, errorInfo);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
+    // Hook up a real error-reporting service here when one exists. No
+    // console.* here (enforced project-wide by no-console) — this is the
+    // one place a logger genuinely can't help either, since it can throw
+    // from inside a broken render tree.
   }
 
   render() {

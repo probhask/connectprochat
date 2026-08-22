@@ -13,7 +13,12 @@ export const SRegister = yup.object({
 });
 
 export const SLogin = yup.object({
-  email: yup.string().trim().lowercase().email().required(),
+  // Either an email or a username — see
+  // modules/user/service.ts's findUserByIdentifier. Deliberately not
+  // .email() here (a username isn't one), and not .lowercase() either
+  // (would corrupt a case-sensitive username; email is lowercased on the
+  // lookup side instead).
+  identifier: yup.string().trim().required("Email or username is required"),
   password: yup.string().required(),
 });
 

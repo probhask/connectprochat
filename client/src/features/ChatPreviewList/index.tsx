@@ -62,7 +62,7 @@ const ChatPreviewList = React.memo(() => {
       {chatListLoading && !chatListError && chatList.length === 0 && (
         <LoadingState />
       )}
-      {!chatListLoading && !chatListError && chatList.length === 0 && (
+      {!chatListLoading && chatListError && (
         <ErrorState error={"unable to load data"} />
       )}
     </ChatListContainer>

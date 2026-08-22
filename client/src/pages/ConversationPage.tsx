@@ -1,4 +1,5 @@
 import { Box, styled } from "@mui/material";
+import { ErrorState, LoadingState } from "@components/FetchingStates";
 
 import ConversationTopBar from "@features/Conversation/ConversationTopBar";
 import EmptyMessage from "@components/EmptyMessage";
@@ -14,7 +15,8 @@ const ConversationPage = () => {
   const { conversationTab, conversationRoomId, hideConversationTab } =
     useChatAppContext();
   const location = useLocation();
-  const { fetchConversation } = useConversation();
+  const { fetchConversation, conversationLoading, conversationError } =
+    useConversation();
 
   useEffect(() => {
     if (
@@ -36,11 +38,27 @@ const ConversationPage = () => {
     <MessageContextProvider>
       <ConversationBox key={conversationRoomId}>
         {conversationRoomId ? (
-          <ChatContainer>
-            <ConversationTopBar key={conversationRoomId + "top-bar"} />
-            <MessagesList key={conversationRoomId} />
-            <SendMessage />
-          </ChatContainer>
+          conversationLoading ? (
+            // Without this, ConversationTopBar/MessagesList rendered
+            // immediately against whatever conversation was in Redux from
+            // before this fetch resolved — either stale data from the
+            // previously open chat, or the empty initial state (showing
+            // "Unknown" as the other participant's name) — with no
+            // indication a request was even in flight.
+            <ChatContainer>
+              <LoadingState message="Loading conversation" />
+            </ChatContainer>
+          ) : conversationError ? (
+            <ChatContainer>
+              <ErrorState error={conversationError} />
+            </ChatContainer>
+          ) : (
+            <ChatContainer>
+              <ConversationTopBar key={conversationRoomId + "top-bar"} />
+              <MessagesList key={conversationRoomId} />
+              <SendMessage />
+            </ChatContainer>
+          )
         ) : (
           <Box
             sx={{

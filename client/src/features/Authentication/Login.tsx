@@ -30,10 +30,10 @@ const Login = () => {
       </Typography>
       {/* <Box component={"label"}>Email</Box> */}
       <Formik
-        initialValues={{ email: "", password: "" }}
+        initialValues={{ identifier: "", password: "" }}
         validationSchema={LoginFormValidationSchema}
         onSubmit={(values, { setSubmitting }) => {
-          handleLogin(values.email, values.password).finally(() => {
+          handleLogin(values.identifier, values.password).finally(() => {
             setSubmitting(false);
           });
         }}
@@ -51,18 +51,18 @@ const Login = () => {
             <Stack spacing={2}>
               <Box sx={{ width: "100%" }}>
                 <StyledTextField
-                  id="email"
-                  label="Email"
+                  id="identifier"
+                  label="Email or Username"
                   variant="outlined"
-                  placeholder="Email Address"
-                  autoComplete="email"
-                  value={values.email}
-                  name="email"
+                  placeholder="Email or Username"
+                  autoComplete="username"
+                  value={values.identifier}
+                  name="identifier"
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  error={touched.email && errors.email ? true : false}
+                  error={touched.identifier && errors.identifier ? true : false}
                 />
-                {touched.email && errors.email && (
+                {touched.identifier && errors.identifier && (
                   <Typography
                     variant="body2"
                     sx={{
@@ -73,7 +73,7 @@ const Login = () => {
                       color: "red",
                     }}
                   >
-                    {errors.email}
+                    {errors.identifier}
                   </Typography>
                 )}
               </Box>

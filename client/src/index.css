@@ -1,74 +1,22 @@
+@import "./theme/tokens.css";
+
 /* tailwind css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* :root {
-  --color-bg-primary: #f5f7fa;
-  --color-bg-secondary: #333333;
-  --color-accent-primary: #4a90e2;
-  --color-text-primary: #333333;
-  --color-light: #555555;
-  --color-dark: #e1e4e8;
-}
-:root {
-  --color-bg-primary: #433878;
-  --color-bg-secondary: #7e60bf;
-  --color-accent-primary: #e4b1f0;
-  --color-text-primary: #ffe1ff;
-  --color-light: #ffffff;
-  --color-dark: #000000;
-} */
-:root {
-  /* Common names for light mode */
-  --color-bg-primary: #433878; /* Main background */
-  --color-bg-secondary: #ffffff; /* Secondary sections, cards */
-  --color-accent-primary: #e4b1f0; /* Buttons, highlights */
-  --color-text-primary: #ffe1ff; /* Text, links, headings */
-  --color-light: #ffffff;
-  --color-dark: #000000;
-  --color-light-gray: #f5f7f8;
-  --color-red: #c62e2e;
-}
-
-@media (prefer-color-scheme: dark) {
-  :root {
-    /* Common names for light mode */
-    --color-bg-primary: #1e153a; /* Main background */
-    --color-bg-secondary: #3b2d66; /* Secondary sections, cards */
-    --color-accent-primary: #c43d18; /* Buttons, highlights */
-    --color-text-primary: #c6aecf; /* Text, links, headings */
-    --color-light: #000000;
-    --color-dark: #e0e0e0;
-    --color-light-gray: #f5f7f8;
-    --color-red: #c62e2e;
-  }
-}
-.dark {
-  /* Common names for light mode */
-  --color-bg-primary: #1e153a; /* Main background */
-  --color-bg-secondary: #3b2d66; /* Secondary sections, cards */
-  --color-accent-primary: #c43d18; /* Buttons, highlights */
-  --color-text-primary: #c6aecf; /* Text, links, headings */
-  --color-light: #e0e0e0;
-  --color-dark: #000000;
-  --color-light-gray: #f5f7f8;
-  --color-red: #c62e2e;
-}
-
 * {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
-  /*filter: drop-shadow(0 0 20px #0000);
-  -webkit-filter: drop-shadow(40px 40px 40px #0000);
-  */
-  /* filter: drop-shadow(40px 40px 40px #0000); */
 }
 body {
   margin-inline: auto;
-  background: var(--color-accent-primary);
-  /* color: rgb(59 130 246 / 0.5); */
+  /* --color-bg-primary ("Main background" per tokens.css), not
+     --color-accent-primary ("Buttons, highlights") — the previous rule used
+     the wrong token, and also silently conflicted with muiTheme.ts's
+     palette.background.default (which CssBaseline also writes to body). */
+  background: var(--color-bg-primary);
   min-width: 220px;
   overflow: auto;
 }

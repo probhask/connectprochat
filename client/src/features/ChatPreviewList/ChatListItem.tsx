@@ -73,9 +73,7 @@ const ChatListItem = React.memo(
 
     const chooseConversation = useCallback(
       (conversationId: string) => {
-        if (!conversationId) {
-          console.error("conversationId not found");
-        }
+        if (!conversationId) return;
         updateConversationRoomId(conversationId);
         showConversationTab();
       },
@@ -109,7 +107,7 @@ const ChatListItem = React.memo(
           >
             <ProfileAvatar
               isOnline={isGroupChat ? false : isOnline}
-              alt="user-image"
+              alt={isGroupChat ? groupName : username}
               url={
                 isGroupChat
                   ? group_picture?.fileName

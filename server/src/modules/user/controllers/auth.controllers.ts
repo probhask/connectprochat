@@ -55,6 +55,17 @@ export const register = asyncWrapper(
     }
 
     if (!existing) {
+      // username is unique on the model (login can be by either email or
+      // username — see findUserByIdentifier) — check explicitly for a
+      // clear 409 instead of letting an E11000 fall through to the
+      // generic "Duplicate value" error-handler branch.
+      const usernameTaken = await runTransaction((tx) =>
+        userService.findUserByUsername(tx, body.username)
+      );
+      if (usernameTaken) {
+        throw new ApiError(409, "Username is already taken");
+      }
+
       const hashedPassword = await hashPassword(body.password);
       await runTransaction((tx) =>
         userService.createUser(tx, {
@@ -88,25 +99,33 @@ export const register = asyncWrapper(
 );
 
 /**
- * Logs a verified user in. Unverified accounts get a typed 403 so the
- * client can route straight to OTP entry instead of a generic auth error.
+ * Logs a verified user in with either their email or username. Unverified
+ * accounts get a typed 403 so the client can route straight to OTP entry
+ * instead of a generic auth error.
  * @route POST /api/auth/login
- * @body SLogin — { email, password }
+ * @body SLogin — { identifier, password }
  * @auth none
  */
 export const login = asyncWrapper(
   async (req, res, { body }) => {
-    const user = await runTransaction((tx) => userService.findUserByEmail(tx, body.email));
-    if (!user) throw new ApiError(401, "Invalid email or password");
+    const user = await runTransaction((tx) =>
+      userService.findUserByIdentifier(tx, body.identifier)
+    );
+    // Same generic message regardless of whether the identifier or the
+    // password was wrong — never confirms which one to an attacker.
+    if (!user) throw new ApiError(401, "Invalid email/username or password");
 
     const isMatch = await verifyPassword(body.password, user.password);
-    if (!isMatch) throw new ApiError(401, "Invalid email or password");
+    if (!isMatch) throw new ApiError(401, "Invalid email/username or password");
 
     if (!user.isVerified) {
+      // Echo back the account's actual email (not body.identifier, which
+      // may have been a username) — the client uses this to pre-fill and
+      // lock the email field on the verify-otp screen.
       return errorResponse(res, {
         status: 403,
         message: "Verify your email before logging in",
-        errors: { code: AuthErrorCode.EMAIL_NOT_VERIFIED },
+        errors: { code: AuthErrorCode.EMAIL_NOT_VERIFIED, email: user.email },
       });
     }
 

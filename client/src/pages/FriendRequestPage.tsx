@@ -4,11 +4,16 @@ import ReceiveRequest from "@features/FriendRequest/ReceiveRequest/ReceiveReques
 import SendRequest from "@features/FriendRequest/SendRequest/SendRequest";
 import { useChatAppSelector } from "@store/hooks";
 import { useEffect } from "react";
-import useFriendRequest from "@hooks/useFriendRequest";
+import useFriendRequestContext from "@context/FriendRequestContext";
 
 const FriendRequestPage = () => {
+  // Consume the shared instance from FriendRequestContextProvider (mounted
+  // in ChatPage) rather than calling useFriendRequest() directly here —
+  // a second, independent hook instance would fetch data but leave the
+  // sentLoading/receivedLoading/error state read by SendRequest/
+  // ReceiveRequest (which read the context's instance) permanently stale.
   const { tab, changeTab, handleFetchReceivedRequest, handleFetchSentRequest } =
-    useFriendRequest();
+    useFriendRequestContext();
   const { received, sended } = useChatAppSelector(
     (store) => store.friendRequest
   );
