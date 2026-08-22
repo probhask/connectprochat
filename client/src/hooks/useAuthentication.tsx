@@ -33,18 +33,23 @@ const useAuthentication = () => {
     loginDetailError,
   ] = useFetchData<ApiEnvelope<AUTH>>("/auth/login", "POST");
   // useFetchData exposes only the response, not the request — track the
-  // attempted email ourselves so a failed login can redirect to
+  // attempted identifier ourselves so a failed login can redirect to
   // verify-otp with it pre-filled (loginResp stays null on failure).
+  // Note: this is only actually usable as an email for that redirect (an
+  // unverified account logging in with a username, not their email,
+  // arrives at verify-otp with an empty/wrong email field — a
+  // pre-existing rough edge, since the server's EMAIL_NOT_VERIFIED
+  // response doesn't currently echo the account's email back).
   const [attemptedEmail, setAttemptedEmail] = useState("");
   const handleLogin = useCallback(
-    async (email: string, password: string) => {
-      if (!email || !password) {
-        toast.error("Email and password are required");
+    async (identifier: string, password: string) => {
+      if (!identifier || !password) {
+        toast.error("Email/username and password are required");
         return;
       }
-      setAttemptedEmail(email);
+      setAttemptedEmail(identifier);
       loginUser({
-        data: { email, password },
+        data: { identifier, password },
       });
     },
     [loginUser]
@@ -68,15 +73,20 @@ const useAuthentication = () => {
     // for the typed EMAIL_NOT_VERIFIED code the server sends (see
     // modules/user/controllers/auth.controllers.ts's login) instead of
     // just showing a generic toast for what's actually an actionable state.
-    const errorCode = (
+    const loginErrors = (
       loginDetailError as {
-        response?: { data?: { errors?: { code?: string } } };
+        response?: { data?: { errors?: { code?: string; email?: string } } };
       }
-    )?.response?.data?.errors?.code;
+    )?.response?.data?.errors;
 
-    if (errorCode === EMAIL_NOT_VERIFIED_CODE) {
+    if (loginErrors?.code === EMAIL_NOT_VERIFIED_CODE) {
       toast.error("Verify your email before logging in");
-      navigate("/auth/verify-otp", { state: { email: attemptedEmail } });
+      // The server echoes back the account's real email (attemptedEmail
+      // may have been a username, not usable for OTP delivery) — fall
+      // back to it only if that's somehow missing.
+      navigate("/auth/verify-otp", {
+        state: { email: loginErrors.email || attemptedEmail },
+      });
       return;
     }
     toast.error(loginError);

@@ -18,6 +18,28 @@ export async function findUserByEmail(tx: TxContext, email: string) {
   return tx.user.findOne({ email }, { populate: PROFILE_PICTURE_POPULATE });
 }
 
+export async function findUserByUsername(tx: TxContext, username: string) {
+  return tx.user.findOne({ username }, { populate: PROFILE_PICTURE_POPULATE });
+}
+
+/**
+ * Login accepts either an email or a username in one field — this is the
+ * lookup behind that. Username has no fixed format to sniff, so this
+ * always checks both fields in a single query rather than guessing which
+ * one `identifier` is; `username` is unique on the model (see
+ * models/user.ts) precisely so this can never match more than one account.
+ */
+export async function findUserByIdentifier(tx: TxContext, identifier: string) {
+  // Email is always stored lowercase (see SRegister's yup .lowercase()
+  // transform) — lowercase only the email side of the match so a
+  // mixed-case email still matches, without forcing username (which IS
+  // case-sensitive as stored) to lowercase too.
+  return tx.user.findOne(
+    { $or: [{ email: identifier.toLowerCase() }, { username: identifier }] },
+    { populate: PROFILE_PICTURE_POPULATE }
+  );
+}
+
 export async function findUserById(tx: TxContext, id: string) {
   return tx.user.findOne({ _id: id }, { populate: PROFILE_PICTURE_POPULATE });
 }

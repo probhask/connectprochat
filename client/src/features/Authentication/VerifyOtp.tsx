@@ -3,20 +3,25 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Link } from "react-router-dom";
+import { addAuthData } from "@store/slices/authSlice";
 import toast from "react-hot-toast";
+import { useChatAppDispatch } from "@store/hooks";
 import useOtp from "@hooks/useOtp";
 
 /**
  * New screen — the pre-revamp client had no OTP entry step at all, because
  * the pre-revamp server never required email verification. Reached from
  * Register on success, or from Login when it gets back the
- * EMAIL_NOT_VERIFIED error code. Verifying does NOT log the user in (the
- * server's verifyEmailOtp only flips isVerified — see
- * server/src/modules/otp/service.ts); the user logs in normally afterward.
+ * EMAIL_NOT_VERIFIED error code. Verifying logs the user straight in (the
+ * server's verifyEmailOtp issues tokens the same way /auth/login does —
+ * see server/src/modules/otp/controllers.ts) — proving email ownership via
+ * OTP is at least as strong a credential as a password, so there's no
+ * reason to send a just-verified user back to a login form.
  */
 const VerifyOtp = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useChatAppDispatch();
   const emailFromState = (location.state as { email?: string } | null)?.email ?? "";
 
   const [email, setEmail] = useState(emailFromState);
@@ -36,11 +41,12 @@ const VerifyOtp = () => {
   // resulting state, don't assume the awaited call in the submit handler
   // succeeded (see useOtp.tsx's doc comment).
   useEffect(() => {
-    if (verifyResp?.success) {
-      toast.success("Email verified — you can log in now");
-      navigate("/auth/login", { replace: true });
+    if (verifyResp?.success && verifyResp.data?._id) {
+      dispatch(addAuthData({ ...verifyResp.data }));
+      toast.success("Email verified — you're logged in");
+      navigate(location?.state?.from || "/", { replace: true });
     }
-  }, [verifyResp, navigate]);
+  }, [verifyResp, navigate, dispatch, location]);
 
   useEffect(() => {
     if (verifyError) toast.error(verifyError);
@@ -85,6 +91,12 @@ const VerifyOtp = () => {
             label="Email"
             placeholder="Email Address"
             value={email}
+            // Disabled once we already know which address to verify (the
+            // normal path — arrived here from Register/Login with the
+            // email in nav state): editing it would just mismatch whatever
+            // OTP was actually sent. Left editable only for the fallback
+            // case of landing on this URL directly with no state at all.
+            disabled={!!emailFromState}
             onChange={(e) => setEmail(e.target.value)}
           />
           <StyledTextField

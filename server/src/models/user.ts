@@ -18,9 +18,12 @@ export interface IUser extends Document {
 
 const userSchema: Schema = new mongoose.Schema(
   {
+    // unique: login-by-username (see modules/user/service.ts's
+    // findUserByIdentifier) would be ambiguous otherwise.
     username: {
       type: String,
       required: true,
+      unique: true,
     },
     email: {
       type: String,

@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 
+import { AUTH } from "types";
 import useFetchData from "./useFetchData";
+
+/** Server always wraps responses as { success, message, data }. */
+type ApiEnvelope<T> = { success: boolean; message: string; data: T };
 
 /**
  * Talks to the new modules/otp endpoints (server/src/modules/otp/routes.ts).
@@ -16,8 +20,10 @@ import useFetchData from "./useFetchData";
 const useOtp = () => {
   const [sendResp, sendLoading, sendError, sendOtpRequest, abortSend] =
     useFetchData<{ success: boolean; message: string }>("/otp/email/send", "POST");
+  // Verifying now logs the user in directly (see modules/otp/controllers.ts)
+  // — the response carries the same AUTH shape as /auth/login's.
   const [verifyResp, verifyLoading, verifyError, verifyOtpRequest, abortVerify] =
-    useFetchData<{ success: boolean; message: string }>("/otp/email/verify", "POST");
+    useFetchData<ApiEnvelope<AUTH>>("/otp/email/verify", "POST");
 
   const sendOtp = useCallback(
     (email: string) => sendOtpRequest({ data: { email } }),

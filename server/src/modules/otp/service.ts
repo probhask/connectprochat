@@ -1,5 +1,6 @@
 import { ApiError } from "../../lib/api-error";
 import { EmailService } from "../../lib/services/email/service";
+import { IUser } from "../../models/user";
 import { OtpStoreService } from "../../lib/services/otp/service";
 import { env } from "../../config/env";
 import { logger } from "../../lib/logger";
@@ -29,6 +30,11 @@ export class OtpService {
 
   /**
    * Verifies + consumes the OTP, then marks the matching User as verified.
+   * Returns the now-verified user so the caller (the controller) can issue
+   * tokens and log them straight in — proving email ownership via OTP is
+   * at least as strong a credential as the password used to log in
+   * normally, so there's no reason to make a just-verified user turn
+   * around and log in again by hand.
    *
    * Dev-only bypass: if NODE_ENV=development and DEV_MASTER_OTP is set in
    * .env, submitting that value instead of the real emailed code also
@@ -37,18 +43,20 @@ export class OtpService {
    * regardless of what's in a deployed .env (belt-and-suspenders: the var
    * itself also should never be set in a production environment).
    */
-  async verifyEmailOtp(email: string, otp: string): Promise<void> {
+  async verifyEmailOtp(email: string, otp: string): Promise<IUser> {
     const isMasterOtp =
       env.NODE_ENV === "development" && !!env.DEV_MASTER_OTP && otp === env.DEV_MASTER_OTP;
 
-    await runTransaction(async (tx) => {
+    return runTransaction(async (tx) => {
       if (isMasterOtp) {
         const user = await tx.user.findOne({ email });
         if (!user) throw new ApiError(400, "Invalid OTP");
       } else {
         await this.otpStore.verifyOtp(tx, { email }, otp);
       }
-      await tx.user.updateOne({ email }, { $set: { isVerified: true } });
+      const user = await tx.user.updateOne({ email }, { $set: { isVerified: true } });
+      if (!user) throw new ApiError(404, "User not found");
+      return user;
     });
   }
 }
