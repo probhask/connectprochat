@@ -1,8 +1,9 @@
 import { Socket, io } from "socket.io-client";
 import { createContext, useContext, useEffect, useMemo } from "react";
 
-import type { MESSAGE } from "types";
+import type { FRIEND, FRIEND_REQUEST, MESSAGE } from "types";
 import { queryKeys } from "@hooks/queryKeys";
+import toast from "react-hot-toast";
 import { useChatAppSelector } from "@store/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import useChatAppContext from "@context/index";
@@ -21,13 +22,12 @@ export const SocketContext = createContext<SocketContextType | undefined>(
  * authenticate handler was reachable but never actually called by anything.
  * Matches the event names in server/src/sockets/constants.ts's SocketEvent.
  *
- * Also, Phase 5: joins/leaves the open conversation's room, and listens
- * for messageReceived — the server side of real-time delivery
- * (sockets/handlers/message.ts, and the REST send endpoints broadcasting
- * too — see modules/conversation/controllers/message.controllers.ts) has
- * existed since Phase 3, but nothing client-side ever joined a room or
- * listened for the event, so no message ever arrived live; every chat
- * needed a manual reload to see anything sent by someone else.
+ * Also, Phase 5: joins/leaves the open conversation's room and listens
+ * for messageReceived (real-time chat messages), and listens for
+ * friendRequestReceived/friendRequestAccepted on the personal room every
+ * authenticated socket joins (see sockets/handlers/connection.ts) — a
+ * sent/accepted friend request now reaches the OTHER party's Friend
+ * Request/Friends pages live, not just the acting user's own client.
  */
 export const SocketContextProvider = ({
   children,
@@ -115,6 +115,54 @@ export const SocketContextProvider = ({
     socket.on("messageReceived", handleMessageReceived);
     return () => {
       socket.off("messageReceived", handleMessageReceived);
+    };
+  }, [socket, queryClient]);
+
+  // Real-time friend request send/accept — the server has pushed these
+  // since this same pass (see modules/friendRequest/controllers.ts), but
+  // nothing client-side listened, so a received/accepted request only
+  // ever showed up for the other party after a manual reload/refetch of
+  // the Friend Request page.
+  useEffect(() => {
+    const handleFriendRequestReceived = (request: FRIEND_REQUEST) => {
+      queryClient.setQueryData<FRIEND_REQUEST[] | undefined>(
+        queryKeys.friendRequest.all("RECEIVE"),
+        (old) => {
+          if (!old) return old;
+          if (old.some((r) => r._id === request._id)) return old;
+          return [...old, request];
+        }
+      );
+      toast.success(`${request.sender.username} sent you a friend request`);
+    };
+
+    const handleFriendRequestAccepted = ({
+      requestId,
+      friend,
+    }: {
+      requestId: string;
+      friend: FRIEND;
+    }) => {
+      queryClient.setQueryData<FRIEND_REQUEST[] | undefined>(
+        queryKeys.friendRequest.all("SEND"),
+        (old) => old?.filter((r) => r._id !== requestId)
+      );
+      queryClient.setQueryData<FRIEND[] | undefined>(
+        queryKeys.user.friends(),
+        (old) => {
+          if (!old) return old;
+          if (old.some((f) => f._id === friend._id)) return old;
+          return [...old, friend];
+        }
+      );
+      toast.success(`${friend.username} accepted your friend request`);
+    };
+
+    socket.on("friendRequestReceived", handleFriendRequestReceived);
+    socket.on("friendRequestAccepted", handleFriendRequestAccepted);
+    return () => {
+      socket.off("friendRequestReceived", handleFriendRequestReceived);
+      socket.off("friendRequestAccepted", handleFriendRequestAccepted);
     };
   }, [socket, queryClient]);
 

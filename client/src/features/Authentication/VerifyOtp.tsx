@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { addAuthData } from "@store/slices/authSlice";
 import toast from "react-hot-toast";
 import { useChatAppDispatch } from "@store/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 import useOtp from "@hooks/useOtp";
 
 /**
@@ -22,6 +23,7 @@ const VerifyOtp = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useChatAppDispatch();
+  const queryClient = useQueryClient();
   const emailFromState = (location.state as { email?: string } | null)?.email ?? "";
 
   const [email, setEmail] = useState(emailFromState);
@@ -42,11 +44,14 @@ const VerifyOtp = () => {
   // awaited/fired.
   useEffect(() => {
     if (verifyResp?.success && verifyResp.data?._id) {
+      // See useAuthentication.tsx's login effect for why — same reasoning,
+      // this is also a "log a fresh identity in" moment.
+      queryClient.clear();
       dispatch(addAuthData({ ...verifyResp.data }));
       toast.success("Email verified — you're logged in");
       navigate(location?.state?.from || "/", { replace: true });
     }
-  }, [verifyResp, navigate, dispatch, location]);
+  }, [verifyResp, navigate, dispatch, location, queryClient]);
 
   useEffect(() => {
     if (verifyError) toast.error("Invalid or expired code");

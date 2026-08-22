@@ -2,7 +2,7 @@ import { addAuthData, logoutUser } from "@store/slices/authSlice";
 import { useCallback, useEffect, useState } from "react";
 import { useChatAppDispatch } from "@store/hooks";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AUTH } from "types";
 import { AxiosError } from "axios";
@@ -22,6 +22,7 @@ const useAuthentication = () => {
   const dispatch = useChatAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
 
   ////////////////////////////////////////////////////////////////
@@ -66,6 +67,13 @@ const useAuthentication = () => {
 
   useEffect(() => {
     if (loginMutation.data?._id) {
+      // Defensive, not just for the logout path below: a query cache
+      // entry is keyed by e.g. ["user", "friends"], not by userId, so
+      // anything already cached under that key from a previous session
+      // in this same tab (no full page reload between them) would
+      // otherwise render — briefly, until each query's own refetch
+      // overwrites it — as if it belonged to the account logging in now.
+      queryClient.clear();
       dispatch(addAuthData({ ...loginMutation.data }));
       toast.success("Login successful");
       toast.loading("Redirecting...", { duration: 1000 });
@@ -74,7 +82,7 @@ const useAuthentication = () => {
       }, 1000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginMutation.data, dispatch, navigate]);
+  }, [loginMutation.data, dispatch, navigate, queryClient]);
 
   useEffect(() => {
     if (!loginMutation.isError) return;
@@ -169,6 +177,11 @@ const useAuthentication = () => {
       const response = await httpClient.post("/auth/logout");
       if (response.data.success) {
         dispatch(logoutUser());
+        // See the matching comment on the login effect above — same
+        // reasoning, the other direction: don't leave this account's
+        // cached data sitting under un-userId'd query keys for whoever
+        // logs into this tab next.
+        queryClient.clear();
         toast.success("logout successful");
         navigate("/auth/login");
       }
@@ -180,7 +193,7 @@ const useAuthentication = () => {
     } finally {
       setLogoutLoading(false);
     }
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, queryClient]);
 
   return {
     //login

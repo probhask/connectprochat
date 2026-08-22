@@ -119,14 +119,20 @@ export async function acceptFriendRequest(
     throw new ApiError(403, "Not authorized to accept this request");
   }
 
-  await userService.addFriendPair(
-    tx,
-    request.sender.toString(),
-    request.receiver.toString()
-  );
+  const originalSenderId = request.sender.toString();
+
+  await userService.addFriendPair(tx, originalSenderId, request.receiver.toString());
   await tx.friendRequest.deleteOne({ _id: requestId });
 
-  return userService.findUserById(tx, request.sender.toString());
+  // Both sides need the OTHER party's user doc as their new "friend" —
+  // the acceptor's response shows the original sender, and the original
+  // sender's real-time push (see controllers.ts) shows the acceptor.
+  const [friendForAcceptor, friendForOriginalSender] = await Promise.all([
+    userService.findUserById(tx, originalSenderId),
+    userService.findUserById(tx, actingUserId),
+  ]);
+
+  return { friendForAcceptor, friendForOriginalSender, originalSenderId, requestId };
 }
 
 /**

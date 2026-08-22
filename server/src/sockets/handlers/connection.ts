@@ -21,6 +21,12 @@ export function registerConnectionHandlers(socket: AppSocket): void {
 
     socket.data.userId = userId;
     addActiveSocket(userId, socket.id);
+    // A personal room named by the user's own id — every socket of theirs
+    // (multiple tabs/devices) joins it, so a user-scoped event (friend
+    // request received/accepted; anything not tied to a specific
+    // conversation) can be delivered with io.to(userId).emit(...) instead
+    // of every handler having to look up getActiveSocketIds itself.
+    socket.join(userId);
     try {
       await markUserOnline(userId);
     } catch (error) {
